@@ -20,7 +20,7 @@ export default function ConvertPdf() {
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [format, setFormat] = useState<"png" | "jpeg">("png");
-  const [results, setResults] = useState<{ name: string; data: Uint8Array }[] | null>(null);
+  const [results, setResults] = useState<{ name: string; data: Blob }[] | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
 
   const handleFilesSelected = useCallback((files: File[]) => {
@@ -44,16 +44,13 @@ export default function ConvertPdf() {
     setProgress(0);
 
     try {
-      const images = await convertPdfToImages(file, format, setProgress);
+      const images = await convertPdfToImages(file, format, 2, setProgress);
       setResults(images);
       
       // Generate previews for first few images
-      const previewUrls = await Promise.all(
-        images.slice(0, 4).map(img => {
-          const blob = new Blob([img.data], { type: `image/${format}` });
-          return URL.createObjectURL(blob);
-        })
-      );
+      const previewUrls = images.slice(0, 4).map(img => {
+        return URL.createObjectURL(img.data);
+      });
       setPreviews(previewUrls);
       
       toast.success(`Converted ${images.length} page${images.length !== 1 ? "s" : ""} to ${format.toUpperCase()}!`);
@@ -62,10 +59,13 @@ export default function ConvertPdf() {
       if (images.length === 1) {
         downloadFile(images[0].data, images[0].name);
       } else {
-        await downloadAsZip(
-          images.map(r => ({ name: r.name, data: r.data })),
-          `${file.name.replace(".pdf", "")}_images.zip`
+        const zipData = await Promise.all(
+          images.map(async r => ({ 
+            name: r.name, 
+            data: new Uint8Array(await r.data.arrayBuffer()) 
+          }))
         );
+        await downloadAsZip(zipData, `${file.name.replace(".pdf", "")}_images.zip`);
       }
     } catch (error) {
       console.error("Conversion error:", error);
@@ -81,10 +81,13 @@ export default function ConvertPdf() {
         if (results.length === 1) {
           downloadFile(results[0].data, results[0].name);
         } else {
-          await downloadAsZip(
-            results.map(r => ({ name: r.name, data: r.data })),
-            `${file.name.replace(".pdf", "")}_images.zip`
+          const zipData = await Promise.all(
+            results.map(async r => ({ 
+              name: r.name, 
+              data: new Uint8Array(await r.data.arrayBuffer()) 
+            }))
           );
+          await downloadAsZip(zipData, `${file.name.replace(".pdf", "")}_images.zip`);
         }
       } catch (error) {
         toast.error("Failed to download files.");
@@ -251,8 +254,8 @@ export default function ConvertPdf() {
           </div>
           <div className="p-6 rounded-xl bg-secondary/30 border border-border">
             <RefreshCw className="w-8 h-8 text-primary mb-4" />
-            <h4 className="font-bold mb-2">Batch Processing</h4>
-            <p className="text-sm text-muted-foreground">Convert multiple pages at once and download them as a single ZIP.</p>
+            <h4 className="font-bold mb-2">Fast & Secure</h4>
+            <p className="text-sm text-muted-foreground">All processing happens in your browser. Your files never leave your device.</p>
           </div>
         </div>
       </div>

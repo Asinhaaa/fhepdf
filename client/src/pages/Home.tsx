@@ -53,13 +53,12 @@ const tools = [
     color: "bg-purple-500/10 text-purple-500",
   },
   {
-    id: "search",
-    title: "Encrypted Search",
-    description: "Search inside PDFs using FHE privacy.",
-    icon: <Search className="w-6 h-6" />,
-    href: "/tools/encrypted-search",
-    color: "bg-primary/10 text-primary",
-    isFhe: true,
+    id: "docx",
+    title: "PDF to DOCX",
+    description: "Convert PDF to editable Word documents.",
+    icon: <FileText className="w-6 h-6" />,
+    href: "/tools/pdf-to-docx",
+    color: "bg-blue-500/10 text-blue-500",
   },
 ];
 

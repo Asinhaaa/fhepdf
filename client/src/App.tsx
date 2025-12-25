@@ -4,15 +4,22 @@ import NotFound from "@/pages/NotFound";
 import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
+import { useCustomCursor } from "./hooks/useCustomCursor";
+import "./styles/cursor.css";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
 import MergePdf from "./pages/tools/MergePdf";
 import SplitPdf from "./pages/tools/SplitPdf";
 import CompressPdf from "./pages/tools/CompressPdf";
 import ConvertPdf from "./pages/tools/ConvertPdf";
-import EncryptedSearch from "./pages/tools/EncryptedSearchV2";
+
 import PdfToDocx from "./pages/tools/PdfToDocx";
 import Documentation from "./pages/Documentation";
+
+function AppContent() {
+  useCustomCursor();
+  return <Router />;
+}
 
 function Router() {
   return (
@@ -23,7 +30,6 @@ function Router() {
       <Route path="/tools/split" component={SplitPdf} />
       <Route path="/tools/compress" component={CompressPdf} />
       <Route path="/tools/convert" component={ConvertPdf} />
-      <Route path="/tools/encrypted-search" component={EncryptedSearch} />
       <Route path="/tools/pdf-to-docx" component={PdfToDocx} />
       <Route path="/docs" component={Documentation} />
       <Route path="/404" component={NotFound} />
@@ -38,7 +44,7 @@ function App() {
       <ThemeProvider defaultTheme="dark">
         <TooltipProvider>
           <Toaster />
-          <Router />
+          <AppContent />
         </TooltipProvider>
       </ThemeProvider>
     </ErrorBoundary>
