@@ -28,6 +28,7 @@ export default function ConvertPdf() {
       setFile(files[0]);
       setResults(null);
       setPreviews([]);
+      setProgress(0);
     }
   }, []);
 
@@ -35,16 +36,35 @@ export default function ConvertPdf() {
     setFile(null);
     setResults(null);
     setPreviews([]);
+    setProgress(0);
   }, []);
 
   const handleConvert = async () => {
-    if (!file) return;
+    if (!file) {
+      toast.error("Please select a PDF file first.");
+      return;
+    }
 
     setIsProcessing(true);
     setProgress(0);
 
     try {
-      const images = await convertPdfToImages(file, format, 2, setProgress);
+      console.log("Starting conversion with format:", format);
+      
+      // Call convertPdfToImages with correct parameters: file, format, scale, onProgress
+      const images = await convertPdfToImages(file, format, 2, (p) => {
+        console.log("Progress:", p);
+        setProgress(Math.round(p));
+      });
+
+      console.log("Conversion successful, got", images.length, "images");
+      
+      if (!images || images.length === 0) {
+        toast.error("No images were generated. Please try again.");
+        setIsProcessing(false);
+        return;
+      }
+
       setResults(images);
       
       // Generate previews for first few images
@@ -59,17 +79,23 @@ export default function ConvertPdf() {
       if (images.length === 1) {
         downloadFile(images[0].data, images[0].name);
       } else {
-        const zipData = await Promise.all(
-          images.map(async r => ({ 
-            name: r.name, 
-            data: new Uint8Array(await r.data.arrayBuffer()) 
-          }))
-        );
-        await downloadAsZip(zipData, `${file.name.replace(".pdf", "")}_images.zip`);
+        try {
+          const zipData = await Promise.all(
+            images.map(async r => ({ 
+              name: r.name, 
+              data: new Uint8Array(await r.data.arrayBuffer()) 
+            }))
+          );
+          await downloadAsZip(zipData, `${file.name.replace(".pdf", "")}_images.zip`);
+        } catch (zipError) {
+          console.error("ZIP creation error:", zipError);
+          toast.error("Failed to create ZIP file. Trying individual downloads...");
+        }
       }
     } catch (error) {
       console.error("Conversion error:", error);
-      toast.error("Failed to convert PDF. Please try again.");
+      const errorMsg = error instanceof Error ? error.message : "Unknown error";
+      toast.error(`Failed to convert PDF: ${errorMsg}`);
     } finally {
       setIsProcessing(false);
     }
@@ -90,6 +116,7 @@ export default function ConvertPdf() {
           await downloadAsZip(zipData, `${file.name.replace(".pdf", "")}_images.zip`);
         }
       } catch (error) {
+        console.error("Download error:", error);
         toast.error("Failed to download files.");
       }
     }
@@ -153,7 +180,8 @@ export default function ConvertPdf() {
                     <Button
                       size="lg"
                       onClick={handleConvert}
-                      className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
+                      disabled={isProcessing}
+                      className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform disabled:opacity-50"
                     >
                       Convert to Image <RefreshCw className="ml-2 w-5 h-5" />
                     </Button>
@@ -176,7 +204,7 @@ export default function ConvertPdf() {
                   </div>
                   <div className="max-w-md mx-auto space-y-2">
                     <Progress value={progress} className="h-3 bg-secondary" />
-                    <p className="text-sm font-bold text-primary">{progress}% Complete</p>
+                    <p className="text-sm font-bold text-primary">{Math.round(progress)}% Complete</p>
                   </div>
                 </motion.div>
               )}
@@ -202,22 +230,24 @@ export default function ConvertPdf() {
               </div>
 
               {/* Previews */}
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
-                {previews.map((url, i) => (
-                  <motion.div
-                    key={i}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.1 }}
-                    className="aspect-[3/4] rounded-lg bg-secondary border border-border overflow-hidden relative group"
-                  >
-                    <img src={url} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
-                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
-                      <span className="text-[10px] font-black text-white bg-primary/20 px-2 py-1 rounded">PAGE {i + 1}</span>
-                    </div>
-                  </motion.div>
-                ))}
-              </div>
+              {previews.length > 0 && (
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                  {previews.map((url, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: i * 0.1 }}
+                      className="aspect-[3/4] rounded-lg bg-secondary border border-border overflow-hidden relative group"
+                    >
+                      <img src={url} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
+                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                        <span className="text-[10px] font-black text-white bg-primary/20 px-2 py-1 rounded">PAGE {i + 1}</span>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              )}
 
               <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                 <Button

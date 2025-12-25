@@ -2,7 +2,7 @@ import { Document, Packer, Paragraph, TextRun, PageBreak, convertInchesToTwip } 
 import * as pdfjsLib from 'pdfjs-dist';
 
 // Set up PDF.js worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjsLib.version}/build/pdf.worker.min.mjs`;
 
 interface ConversionOptions {
   includeImages?: boolean;
@@ -135,33 +135,50 @@ export async function convertPdfToDocx(
 ): Promise<{ blob: Blob; fileName: string }> {
   const { onProgress } = options;
 
-  // Extract content
-  if (onProgress) onProgress(0);
-  const content = await extractPdfContent(file, {
-    ...options,
-    onProgress: (p) => onProgress && onProgress(p * 0.7),
-  });
+  try {
+    // Extract content
+    if (onProgress) onProgress(0);
+    const content = await extractPdfContent(file, {
+      ...options,
+      onProgress: (p) => onProgress && onProgress(p * 0.7),
+    });
 
-  // Create DOCX
-  if (onProgress) onProgress(70);
-  const fileName = file.name.replace('.pdf', '.docx');
-  const blob = await createDocxFromContent(content, fileName);
+    // Create DOCX
+    if (onProgress) onProgress(70);
+    const fileName = file.name.replace('.pdf', '.docx');
+    const blob = await createDocxFromContent(content, fileName);
 
-  if (onProgress) onProgress(100);
+    if (onProgress) onProgress(100);
 
-  return { blob, fileName };
+    return { blob, fileName };
+  } catch (error) {
+    console.error('PDF to DOCX conversion error:', error);
+    throw new Error(`Conversion failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+  }
 }
 
 /**
  * Download DOCX file
  */
 export function downloadDocx(blob: Blob, fileName: string): void {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = fileName;
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  try {
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = fileName;
+    link.style.display = 'none';
+    document.body.appendChild(link);
+    
+    // Trigger download
+    link.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }, 100);
+  } catch (error) {
+    console.error('Download error:', error);
+    throw new Error('Failed to download DOCX file');
+  }
 }
