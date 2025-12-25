@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { ToolLayout } from "@/components/ToolLayout";
 import { FileDropZone } from "@/components/FileDropZone";
 import { Button } from "@/components/ui/button";
@@ -12,192 +12,141 @@ import {
   FileText,
   Lock,
   Shield,
-  Zap,
-  Eye,
-  EyeOff,
   CheckCircle2,
-  AlertCircle,
   Key,
-  Binary
+  AlertCircle,
 } from "lucide-react";
 import { extractTextFromPdf, getPdfPageCount } from "@/lib/pdfUtils";
 import { toast } from "sonner";
-import { motion, AnimatePresence } from "framer-motion";
+import * as fheService from "@/lib/fheService";
+import { setEncryptedTokens, getEncryptedTokens } from "@/lib/keyStorage";
 
 interface SearchResult {
-  pageNumber: number;
-  snippet: string;
+  batchIndex: number;
   matchCount: number;
-}
-
-// Simulated FHE encryption visualization
-function EncryptionVisualizer({ isActive }: { isActive: boolean }) {
-  if (!isActive) return null;
-  
-  return (
-    <div className="relative h-24 overflow-hidden rounded-lg bg-secondary/50 border border-border">
-      <div className="absolute inset-0 flex items-center justify-center">
-        <div className="flex items-center gap-4">
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg bg-primary/20 flex items-center justify-center mb-2">
-              <Key className="w-6 h-6 text-primary animate-pulse" />
-            </div>
-            <span className="text-xs text-muted-foreground">Encrypting</span>
-          </div>
-          <div className="flex gap-1">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full bg-primary"
-                animate={{
-                  x: [0, 40, 80],
-                  opacity: [1, 0.5, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-              />
-            ))}
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg bg-accent/20 flex items-center justify-center mb-2">
-              <Binary className="w-6 h-6 text-accent animate-pulse" />
-            </div>
-            <span className="text-xs text-muted-foreground">Computing</span>
-          </div>
-          <div className="flex gap-1">
-            {[...Array(5)].map((_, i) => (
-              <motion.div
-                key={i}
-                className="w-2 h-2 rounded-full bg-accent"
-                animate={{
-                  x: [0, 40, 80],
-                  opacity: [1, 0.5, 0],
-                }}
-                transition={{
-                  duration: 1,
-                  repeat: Infinity,
-                  delay: i * 0.2,
-                }}
-              />
-            ))}
-          </div>
-          <div className="flex flex-col items-center">
-            <div className="w-12 h-12 rounded-lg bg-green-500/20 flex items-center justify-center mb-2">
-              <Shield className="w-6 h-6 text-green-500 animate-pulse" />
-            </div>
-            <span className="text-xs text-muted-foreground">Decrypting</span>
-          </div>
-        </div>
-      </div>
-      <div className="absolute inset-0 encrypt-animation opacity-20" />
-    </div>
-  );
 }
 
 export default function EncryptedSearch() {
   const [file, setFile] = useState<File | null>(null);
   const [pageCount, setPageCount] = useState(0);
   const [searchQuery, setSearchQuery] = useState("");
+  const [isInitializing, setIsInitializing] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const [isSearching, setIsSearching] = useState(false);
   const [progress, setProgress] = useState(0);
   const [textContent, setTextContent] = useState<string[]>([]);
+  const [encryptedBatches, setEncryptedBatches] = useState<string[]>([]);
   const [results, setResults] = useState<SearchResult[] | null>(null);
-  const [showEncryption, setShowEncryption] = useState(false);
-  const [encryptedQuery, setEncryptedQuery] = useState("");
+  const [fheReady, setFheReady] = useState(false);
+  const [initError, setInitError] = useState<string | null>(null);
+
+  // Initialize FHE on component mount
+  useEffect(() => {
+    const init = async () => {
+      setIsInitializing(true);
+      try {
+        await fheService.initializeFHE();
+        setFheReady(true);
+        toast.success("FHE encryption ready!");
+      } catch (error) {
+        console.error("FHE initialization error:", error);
+        setInitError(error instanceof Error ? error.message : "Unknown error");
+        toast.error("Failed to initialize encryption. Please refresh the page.");
+      } finally {
+        setIsInitializing(false);
+      }
+    };
+
+    init();
+
+    // Cleanup on unmount
+    return () => {
+      fheService.cleanup();
+    };
+  }, []);
 
   const handleFileSelected = useCallback(async (files: File[]) => {
+    if (!fheReady) {
+      toast.error("Encryption not ready yet. Please wait.");
+      return;
+    }
+
     const selectedFile = files[0];
     setFile(selectedFile);
     setResults(null);
     setTextContent([]);
+    setEncryptedBatches([]);
     
     try {
       const count = await getPdfPageCount(selectedFile);
       setPageCount(count);
       
-      // Extract text for searching
+      // Extract text
       setIsProcessing(true);
-      const text = await extractTextFromPdf(selectedFile, setProgress);
+      setProgress(0);
+      const text = await extractTextFromPdf(selectedFile, (p) => setProgress(p * 0.5));
       setTextContent(text);
+
+      // Check if we have cached encrypted tokens
+      const documentId = `${selectedFile.name}-${selectedFile.size}`;
+      const cached = await getEncryptedTokens(documentId);
+
+      if (cached) {
+        console.log("Using cached encrypted tokens");
+        setEncryptedBatches(cached.encryptedBatches);
+        setProgress(100);
+        toast.success("PDF loaded from cache and ready for search!");
+      } else {
+        // Encrypt the document
+        console.log("Encrypting document...");
+        toast.info("Encrypting document with FHE...");
+        const encrypted = await fheService.encryptDocument(text, (p) => setProgress(50 + p * 0.5));
+        setEncryptedBatches(encrypted);
+
+        // Cache the encrypted tokens
+        await setEncryptedTokens(documentId, encrypted);
+        toast.success("PDF encrypted and ready for search!");
+      }
+
       setIsProcessing(false);
-      
-      toast.success("PDF loaded and indexed for encrypted search!");
     } catch (error) {
+      console.error("Processing error:", error);
       toast.error("Failed to process PDF. Please try another file.");
       setIsProcessing(false);
     }
-  }, []);
-
-  // Simulate FHE encryption of the search query
-  const simulateEncryption = (query: string): string => {
-    // This is a visual simulation - in production, this would use Zama's Concrete library
-    const chars = "0123456789abcdef";
-    let encrypted = "";
-    for (let i = 0; i < query.length * 8; i++) {
-      encrypted += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return encrypted;
-  };
+  }, [fheReady]);
 
   const handleSearch = async () => {
-    if (!searchQuery.trim() || textContent.length === 0) {
+    if (!searchQuery.trim() || encryptedBatches.length === 0) {
       toast.error("Please enter a search term");
       return;
     }
 
     setIsSearching(true);
-    setShowEncryption(true);
     setResults(null);
+    setProgress(0);
 
-    // Simulate FHE encryption process
-    await new Promise(resolve => setTimeout(resolve, 500));
-    const encrypted = simulateEncryption(searchQuery);
-    setEncryptedQuery(encrypted);
+    try {
+      toast.info("Performing homomorphic search...");
+      const searchResults = await fheService.searchEncrypted(
+        encryptedBatches,
+        searchQuery,
+        setProgress
+      );
 
-    // Simulate encrypted computation delay
-    await new Promise(resolve => setTimeout(resolve, 1500));
+      setResults(searchResults);
 
-    // Perform the actual search (in production, this would be done on encrypted data)
-    const searchResults: SearchResult[] = [];
-    const queryLower = searchQuery.toLowerCase();
-
-    textContent.forEach((pageText, index) => {
-      const textLower = pageText.toLowerCase();
-      const matches = textLower.split(queryLower).length - 1;
-      
-      if (matches > 0) {
-        // Find snippet around first match
-        const matchIndex = textLower.indexOf(queryLower);
-        const start = Math.max(0, matchIndex - 50);
-        const end = Math.min(pageText.length, matchIndex + searchQuery.length + 50);
-        let snippet = pageText.substring(start, end);
-        
-        if (start > 0) snippet = "..." + snippet;
-        if (end < pageText.length) snippet = snippet + "...";
-
-        searchResults.push({
-          pageNumber: index + 1,
-          snippet,
-          matchCount: matches,
-        });
+      if (searchResults.length > 0) {
+        const totalMatches = searchResults.reduce((sum, r) => sum + r.matchCount, 0);
+        toast.success(`Found ${totalMatches} matches in ${searchResults.length} batch(es)`);
+      } else {
+        toast.info("No matches found");
       }
-    });
-
-    // Simulate decryption delay
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    setResults(searchResults);
-    setIsSearching(false);
-    setShowEncryption(false);
-
-    if (searchResults.length > 0) {
-      toast.success(`Found ${searchResults.reduce((a, b) => a + b.matchCount, 0)} matches in ${searchResults.length} page(s)`);
-    } else {
-      toast.info("No matches found");
+    } catch (error) {
+      console.error("Search error:", error);
+      toast.error("Search failed. Please try again.");
+    } finally {
+      setIsSearching(false);
     }
   };
 
@@ -205,22 +154,10 @@ export default function EncryptedSearch() {
     setFile(null);
     setPageCount(0);
     setTextContent([]);
+    setEncryptedBatches([]);
     setResults(null);
     setSearchQuery("");
     setProgress(0);
-  };
-
-  const highlightMatch = (text: string, query: string) => {
-    const parts = text.split(new RegExp(`(${query})`, "gi"));
-    return parts.map((part, i) =>
-      part.toLowerCase() === query.toLowerCase() ? (
-        <mark key={i} className="bg-accent/30 text-accent-foreground px-0.5 rounded">
-          {part}
-        </mark>
-      ) : (
-        part
-      )
-    );
   };
 
   return (
@@ -232,34 +169,52 @@ export default function EncryptedSearch() {
       badge="FHE"
     >
       <div className="space-y-6">
-        {/* FHE Info Banner */}
+        {/* FHE Status Banner */}
         <Card className="bg-gradient-to-r from-primary/10 to-accent/10 border-primary/20">
           <CardContent className="pt-6">
             <div className="flex items-start gap-4">
               <div className="w-12 h-12 rounded-xl bg-primary/20 flex items-center justify-center shrink-0">
-                <Shield className="w-6 h-6 text-primary" />
+                {isInitializing ? (
+                  <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                ) : fheReady ? (
+                  <CheckCircle2 className="w-6 h-6 text-green-500" />
+                ) : initError ? (
+                  <AlertCircle className="w-6 h-6 text-red-500" />
+                ) : (
+                  <Shield className="w-6 h-6 text-primary" />
+                )}
               </div>
-              <div>
-                <h3 className="font-semibold mb-1">Fully Homomorphic Encryption</h3>
+              <div className="flex-1">
+                <h3 className="font-semibold mb-1">
+                  {isInitializing 
+                    ? "Initializing Encryption..." 
+                    : initError 
+                    ? "Encryption Error" 
+                    : "Fully Homomorphic Encryption"}
+                </h3>
                 <p className="text-sm text-muted-foreground">
-                  Your search query is encrypted before processing. The search is performed 
-                  on encrypted data, and results are decrypted only on your device. 
-                  Neither the query nor the document content is ever exposed.
+                  {isInitializing
+                    ? "Setting up encryption keys and parameters using Microsoft SEAL..."
+                    : initError
+                    ? `Error: ${initError}. Please refresh the page.`
+                    : "Your search query is encrypted before processing. The search is performed on encrypted data using node-seal (Microsoft SEAL), and results are decrypted only on your device. Neither the query nor the document content is ever exposed."}
                 </p>
-                <div className="flex flex-wrap gap-2 mt-3">
-                  <Badge variant="secondary" className="bg-primary/10">
-                    <Lock className="w-3 h-3 mr-1" />
-                    Encrypted Query
-                  </Badge>
-                  <Badge variant="secondary" className="bg-accent/10">
-                    <EyeOff className="w-3 h-3 mr-1" />
-                    Zero Knowledge
-                  </Badge>
-                  <Badge variant="secondary" className="bg-green-500/10 text-green-500">
-                    <Zap className="w-3 h-3 mr-1" />
-                    Powered by Zama
-                  </Badge>
-                </div>
+                {fheReady && (
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <Badge variant="secondary" className="bg-primary/10">
+                      <Lock className="w-3 h-3 mr-1" />
+                      Encrypted Query
+                    </Badge>
+                    <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                      <Key className="w-3 h-3 mr-1" />
+                      Keys Loaded
+                    </Badge>
+                    <Badge variant="secondary" className="bg-blue-500/10 text-blue-500">
+                      <Shield className="w-3 h-3 mr-1" />
+                      Microsoft SEAL
+                    </Badge>
+                  </div>
+                )}
               </div>
             </div>
           </CardContent>
@@ -271,7 +226,7 @@ export default function EncryptedSearch() {
             onFilesSelected={handleFileSelected}
             accept=".pdf"
             multiple={false}
-            disabled={isProcessing}
+            disabled={isProcessing || !fheReady}
           />
         )}
 
@@ -281,7 +236,9 @@ export default function EncryptedSearch() {
             <CardContent className="pt-6">
               <div className="flex items-center gap-4 mb-4">
                 <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="font-medium">Indexing PDF for encrypted search...</span>
+                <span className="font-medium">
+                  {progress < 50 ? "Extracting text from PDF..." : "Encrypting document with FHE..."}
+                </span>
               </div>
               <Progress value={progress} className="h-2" />
               <p className="text-sm text-muted-foreground mt-2">
@@ -292,146 +249,148 @@ export default function EncryptedSearch() {
         )}
 
         {/* Search Interface */}
-        {file && textContent.length > 0 && !isProcessing && (
+        {file && encryptedBatches.length > 0 && !isProcessing && (
           <>
             <Card className="bg-card border-border">
               <CardContent className="pt-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium truncate">{file.name}</p>
+                <div className="flex items-center gap-4 mb-4">
+                  <FileText className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-medium">{file.name}</p>
                     <p className="text-sm text-muted-foreground">
-                      {pageCount} page{pageCount !== 1 ? "s" : ""} indexed
+                      {pageCount} pages • {encryptedBatches.length} encrypted batches • Ready for search
                     </p>
                   </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={isSearching}
-                  >
-                    Change file
-                  </Button>
                 </div>
-
-                {/* Search Input */}
-                <div className="space-y-4">
-                  <div className="flex gap-3">
-                    <div className="relative flex-1">
-                      <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                      <Input
-                        placeholder="Enter your encrypted search query..."
-                        value={searchQuery}
-                        onChange={(e) => setSearchQuery(e.target.value)}
-                        onKeyDown={(e) => e.key === "Enter" && handleSearch()}
-                        className="pl-10 h-12 bg-secondary"
-                        disabled={isSearching}
-                      />
-                    </div>
-                    <Button
-                      size="lg"
-                      className="gradient-primary border-0 h-12 px-6"
-                      onClick={handleSearch}
-                      disabled={isSearching || !searchQuery.trim()}
-                    >
-                      {isSearching ? (
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      ) : (
-                        <>
-                          <Lock className="w-4 h-4 mr-2" />
-                          Search
-                        </>
-                      )}
-                    </Button>
-                  </div>
-
-                  {/* Encryption Visualization */}
-                  <AnimatePresence>
-                    {showEncryption && (
-                      <motion.div
-                        initial={{ opacity: 0, height: 0 }}
-                        animate={{ opacity: 1, height: "auto" }}
-                        exit={{ opacity: 0, height: 0 }}
-                      >
-                        <EncryptionVisualizer isActive={isSearching} />
-                        {encryptedQuery && (
-                          <div className="mt-3 p-3 rounded-lg bg-secondary/50 border border-border">
-                            <p className="text-xs text-muted-foreground mb-1">Encrypted Query (FHE Ciphertext)</p>
-                            <p className="font-mono text-xs text-primary break-all">
-                              {encryptedQuery.substring(0, 64)}...
-                            </p>
-                          </div>
-                        )}
-                      </motion.div>
+                <div className="flex gap-2">
+                  <Input
+                    type="text"
+                    placeholder="Enter search query..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    onKeyDown={(e) => e.key === "Enter" && handleSearch()}
+                    disabled={isSearching}
+                    className="flex-1"
+                  />
+                  <Button onClick={handleSearch} disabled={isSearching}>
+                    {isSearching ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Searching...
+                      </>
+                    ) : (
+                      <>
+                        <Search className="w-4 h-4 mr-2" />
+                        Search
+                      </>
                     )}
-                  </AnimatePresence>
+                  </Button>
+                  <Button variant="outline" onClick={handleReset}>
+                    Reset
+                  </Button>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Search Results */}
-            {results !== null && (
-              <Card className="bg-card border-border">
+            {/* Search Progress */}
+            {isSearching && (
+              <Card>
                 <CardContent className="pt-6">
-                  <div className="flex items-center gap-4 mb-6">
-                    {results.length > 0 ? (
-                      <>
-                        <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-                          <CheckCircle2 className="w-6 h-6 text-accent" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">
-                            {results.reduce((a, b) => a + b.matchCount, 0)} matches found
-                          </h3>
-                          <p className="text-muted-foreground">
-                            In {results.length} page{results.length !== 1 ? "s" : ""} • Decrypted locally
-                          </p>
-                        </div>
-                      </>
-                    ) : (
-                      <>
-                        <div className="w-12 h-12 rounded-xl bg-muted flex items-center justify-center">
-                          <AlertCircle className="w-6 h-6 text-muted-foreground" />
-                        </div>
-                        <div>
-                          <h3 className="font-semibold text-lg">No matches found</h3>
-                          <p className="text-muted-foreground">
-                            Try a different search term
-                          </p>
-                        </div>
-                      </>
-                    )}
+                  <div className="flex items-center gap-4 mb-4">
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
+                    <span className="font-medium">Performing homomorphic search on encrypted data...</span>
                   </div>
+                  <Progress value={progress} className="h-2" />
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Processing batch {Math.ceil((progress / 100) * encryptedBatches.length)} of {encryptedBatches.length}
+                  </p>
+                </CardContent>
+              </Card>
+            )}
 
-                  {results.length > 0 && (
-                    <div className="space-y-3 max-h-96 overflow-y-auto">
-                      {results.map((result, index) => (
-                        <div
-                          key={index}
-                          className="p-4 rounded-lg bg-secondary/50 border border-border"
-                        >
-                          <div className="flex items-center gap-2 mb-2">
-                            <Badge variant="secondary" className="bg-primary/10">
-                              Page {result.pageNumber}
-                            </Badge>
-                            <Badge variant="outline" className="text-xs">
-                              {result.matchCount} match{result.matchCount !== 1 ? "es" : ""}
-                            </Badge>
+            {/* Results */}
+            {results && results.length > 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <h3 className="font-semibold mb-4 flex items-center gap-2">
+                    <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    Search Results
+                  </h3>
+                  <div className="space-y-2">
+                    {results.map((result) => (
+                      <div
+                        key={result.batchIndex}
+                        className="p-4 bg-accent/10 rounded-lg border border-accent/20 hover:bg-accent/20 transition-colors"
+                      >
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <p className="font-medium">
+                              Batch {result.batchIndex + 1}
+                            </p>
+                            <p className="text-sm text-muted-foreground">
+                              {result.matchCount} match{result.matchCount > 1 ? "es" : ""} found
+                            </p>
                           </div>
-                          <p className="text-sm text-muted-foreground">
-                            {highlightMatch(result.snippet, searchQuery)}
-                          </p>
+                          <Badge variant="secondary" className="bg-green-500/10 text-green-500">
+                            <CheckCircle2 className="w-3 h-3 mr-1" />
+                            Match
+                          </Badge>
                         </div>
-                      ))}
-                    </div>
-                  )}
+                      </div>
+                    ))}
+                  </div>
+                  <div className="mt-4 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                    <p className="text-sm text-blue-600 dark:text-blue-400">
+                      <strong>Note:</strong> Results show encrypted batch indices. Each batch contains up to 4,096 tokens. 
+                      The search was performed entirely on encrypted data using homomorphic operations.
+                    </p>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {results && results.length === 0 && (
+              <Card>
+                <CardContent className="pt-6">
+                  <div className="text-center py-8">
+                    <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                    <p className="text-lg font-medium mb-2">No matches found</p>
+                    <p className="text-sm text-muted-foreground">
+                      No matches found for "{searchQuery}" in the encrypted document.
+                    </p>
+                  </div>
                 </CardContent>
               </Card>
             )}
           </>
         )}
+
+        {/* Technical Info */}
+        <Card className="bg-secondary/50 border-secondary">
+          <CardContent className="pt-6">
+            <h3 className="font-semibold mb-3 flex items-center gap-2">
+              <Shield className="w-5 h-5 text-primary" />
+              How It Works
+            </h3>
+            <div className="space-y-2 text-sm text-muted-foreground">
+              <p>
+                <strong className="text-foreground">1. Key Generation:</strong> On first use, encryption keys are generated and stored securely in your browser's IndexedDB.
+              </p>
+              <p>
+                <strong className="text-foreground">2. Document Encryption:</strong> Your PDF is tokenized and encrypted using the BFV scheme (Brakerski-Fan-Vercauteren) with 128-bit security.
+              </p>
+              <p>
+                <strong className="text-foreground">3. Query Encryption:</strong> Your search query is encrypted with the same keys before being processed.
+              </p>
+              <p>
+                <strong className="text-foreground">4. Homomorphic Search:</strong> The search is performed on encrypted data using homomorphic subtraction to find matches without decryption.
+              </p>
+              <p>
+                <strong className="text-foreground">5. Result Decryption:</strong> Only the final results are decrypted on your device. The search process never exposes plaintext data.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </ToolLayout>
   );

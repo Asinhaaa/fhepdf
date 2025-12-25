@@ -1,8 +1,6 @@
 # FHEPdf - Privacy-Preserving PDF Toolkit
 
-A privacy-focused PDF processing application built for the **Zama FHE Developer Grant**. All PDF operations happen client-side in the browser, ensuring your files never leave your device.
-
-**Built by [@ramx_ai](https://x.com/ramx_ai)**
+A privacy-focused PDF processing application with all PDF operations happening client-side in the browser, ensuring your files never leave your device.
 
 ## Features
 
@@ -80,7 +78,7 @@ fhe-pdf-processor/
 |------|-------------|
 | `client/src/pages/Home.tsx` | Landing page with hero section |
 | `client/src/pages/tools/EncryptedSearch.tsx` | FHE search implementation |
-| `client/src/pages/Documentation.tsx` | Technical docs for grant |
+| `client/src/pages/Documentation.tsx` | Technical documentation |
 | `client/src/lib/pdfUtils.ts` | Client-side PDF processing |
 | `client/src/index.css` | Theme & design tokens |
 
@@ -91,24 +89,31 @@ DATABASE_URL=mysql://user:pass@host:3306/dbname
 JWT_SECRET=your-secret-key
 ```
 
-## Deployment
+## Deployment to Vercel
 
-### Vercel (Frontend Only)
+This project is ready for deployment to Vercel.
 
-For a static frontend deployment:
+### 1. Connect to GitHub
 
-```bash
-cd client
-pnpm build
-# Deploy the dist folder to Vercel
-```
+Ensure your project is pushed to a GitHub repository.
 
-### Full Stack
+### 2. Import Project in Vercel
 
-For full stack with database:
-- Use Railway, Render, or similar platforms
-- Set environment variables for database connection
-- Run `pnpm db:push` after deployment
+- In your Vercel dashboard, click "Add New..." -> "Project".
+- Import the GitHub repository.
+
+### 3. Configure Project
+
+Vercel should automatically detect that this is a Vite project. The default settings should work correctly.
+
+- **Framework Preset**: Vite
+- **Build Command**: `pnpm run build`
+- **Output Directory**: `dist/public`
+- **Install Command**: `pnpm install`
+
+### 4. Deploy
+
+Click the "Deploy" button. Vercel will build and deploy your project. After a few minutes, your FHE-enhanced application will be live!
 
 ## Privacy Guarantees
 
@@ -117,14 +122,17 @@ For full stack with database:
 3. **No Data Collection** - We don't track or store your files
 4. **Open Source** - Full transparency in implementation
 
-## Zama FHE Integration
+## FHE Encrypted Search Enhancement
 
-The FHE Encrypted Search feature demonstrates:
-- Encrypting search queries before processing
-- Computing on encrypted data (ciphertext)
-- Decrypting results client-side
+This project has been enhanced with a production-ready, client-side FHE encrypted search feature using `node-seal` (Microsoft SEAL).
 
-For production FHE, integrate [Zama Concrete](https://docs.zama.ai/concrete) compiled to WebAssembly.
+### Changes Overview
+
+- **Real FHE**: Replaced simulated FHE with genuine homomorphic encryption.
+- **Client-Side**: All cryptographic operations (key generation, encryption, homomorphic evaluation, decryption) run in the browser.
+- **`node-seal` Integration**: Uses the mature and performant Microsoft SEAL library via WebAssembly.
+- **Secure Key Storage**: FHE keys are generated and stored securely in the browser's IndexedDB.
+- **Improved UI**: The UI now provides real-time feedback on the FHE process.
 
 ## License
 
@@ -132,6 +140,5 @@ MIT License - Feel free to use and modify for your projects.
 
 ## Links
 
-- **Twitter**: [@ramx_ai](https://x.com/ramx_ai)
 - **Zama**: [zama.ai](https://www.zama.ai/)
 - **Concrete Docs**: [docs.zama.ai/concrete](https://docs.zama.ai/concrete)

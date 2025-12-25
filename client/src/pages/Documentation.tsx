@@ -606,7 +606,7 @@ displaySearchResults(results);`
       <footer className="py-8 border-t border-border">
         <div className="container">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4 text-sm text-muted-foreground">
-            <p>Built by <a href="https://x.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">@ramx_ai</a> for the Zama FHE Developer Grant</p>
+            <p>Built with privacy-first PDF processing using Zama FHE technology</p>
             <div className="flex items-center gap-4">
               <a 
                 href="https://www.zama.ai/" 

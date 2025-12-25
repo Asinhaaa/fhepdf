@@ -437,7 +437,7 @@ export default function Home() {
               </a>
             </div>
             <div className="text-sm text-muted-foreground">
-              Built by <a href="https://x.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-accent hover:underline">@ramx_ai</a> for the Zama FHE Developer Grant
+              Built with privacy-first PDF processing
             </div>
           </div>
         </div>
