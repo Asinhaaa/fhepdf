@@ -1,73 +1,32 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Scissors, Download, RefreshCw, CheckCircle2, FileText } from "lucide-react";
 import { ToolLayout } from "@/components/ToolLayout";
 import { FileDropZone } from "@/components/FileDropZone";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { 
-  Scissors, 
-  Download, 
-  Loader2, 
-  CheckCircle2, 
-  FileText,
-  Plus,
-  X
-} from "lucide-react";
-import { 
-  splitPdf, 
-  splitPdfToPages, 
-  getPdfPageCount, 
-  downloadAsZip,
-  downloadFile 
-} from "@/lib/pdfUtils";
+import { splitPdf, downloadFile, downloadAsZip } from "@/lib/pdfUtils";
 import { toast } from "sonner";
-
-interface PageRange {
-  start: number;
-  end: number;
-}
 
 export default function SplitPdf() {
   const [file, setFile] = useState<File | null>(null);
-  const [pageCount, setPageCount] = useState<number>(0);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [ranges, setRanges] = useState("");
   const [results, setResults] = useState<{ name: string; data: Uint8Array }[] | null>(null);
-  const [splitMode, setSplitMode] = useState<"all" | "ranges">("all");
-  const [ranges, setRanges] = useState<PageRange[]>([{ start: 1, end: 1 }]);
 
-  const handleFileSelected = useCallback(async (files: File[]) => {
-    const selectedFile = files[0];
-    setFile(selectedFile);
-    setResults(null);
-    
-    try {
-      const count = await getPdfPageCount(selectedFile);
-      setPageCount(count);
-      setRanges([{ start: 1, end: count }]);
-    } catch (error) {
-      toast.error("Failed to read PDF. Please try another file.");
+  const handleFilesSelected = useCallback((files: File[]) => {
+    if (files.length > 0) {
+      setFile(files[0]);
+      setResults(null);
     }
   }, []);
 
-  const handleAddRange = () => {
-    setRanges(prev => [...prev, { start: 1, end: pageCount }]);
-  };
-
-  const handleRemoveRange = (index: number) => {
-    setRanges(prev => prev.filter((_, i) => i !== index));
-  };
-
-  const handleRangeChange = (index: number, field: "start" | "end", value: number) => {
-    setRanges(prev => prev.map((range, i) => {
-      if (i !== index) return range;
-      const newValue = Math.max(1, Math.min(pageCount, value));
-      return { ...range, [field]: newValue };
-    }));
-  };
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
+    setResults(null);
+  }, []);
 
   const handleSplit = async () => {
     if (!file) return;
@@ -77,18 +36,18 @@ export default function SplitPdf() {
 
     try {
       let splitResults;
-      
-      if (splitMode === "all") {
-        splitResults = await splitPdfToPages(file, setProgress);
+      if (!ranges.trim()) {
+        // Default: split every page
+        splitResults = await splitPdf(file, [], setProgress);
       } else {
-        // Validate ranges
-        const validRanges = ranges.filter(r => r.start <= r.end && r.start >= 1 && r.end <= pageCount);
-        if (validRanges.length === 0) {
-          toast.error("Please enter valid page ranges");
-          setIsProcessing(false);
-          return;
-        }
-        splitResults = await splitPdf(file, validRanges, setProgress);
+        // Parse ranges: "1, 2-5, 8"
+        const validRanges = ranges.split(",").map(r => {
+          const parts = r.trim().split("-");
+          if (parts.length === 1) return parseInt(parts[0]);
+          return { start: parseInt(parts[0]), end: parseInt(parts[1]) };
+        }).filter(r => r !== null && !isNaN(typeof r === "number" ? r : r.start));
+        
+        splitResults = await splitPdf(file, validRanges as any, setProgress);
       }
       
       setResults(splitResults);
@@ -109,243 +68,161 @@ export default function SplitPdf() {
   };
 
   const handleDownloadAll = async () => {
-    if (results && results.length > 0) {
+    if (results && results.length > 0 && file) {
       try {
         if (results.length === 1) {
           downloadFile(results[0].data, results[0].name);
         } else {
-          await downloadAsZip(results, `${file?.name.replace(".pdf", "")}_split.zip`);
+          await downloadAsZip(results, `${file.name.replace(".pdf", "")}_split.zip`);
         }
-        toast.success("Download started!");
       } catch (error) {
-        console.error("Download error:", error);
         toast.error("Failed to download files.");
       }
     }
   };
 
-  const handleDownloadSingle = (index: number) => {
-    if (results && results[index]) {
-      downloadFile(results[index].data, results[index].name);
-    }
-  };
-
   const handleReset = () => {
     setFile(null);
-    setPageCount(0);
     setResults(null);
+    setRanges("");
     setProgress(0);
-    setRanges([{ start: 1, end: 1 }]);
   };
 
   return (
     <ToolLayout
       title="Split PDF"
-      description="Extract pages or split your PDF into multiple files"
-      icon={<Scissors className="w-8 h-8 text-white" />}
-      iconColor="from-pink-500 to-rose-600"
+      description="Extract specific pages or split your PDF into multiple individual files."
+      badge="ORGANIZE"
     >
-      <div className="space-y-6">
-        {/* File Drop Zone */}
-        {!file && (
-          <FileDropZone
-            onFilesSelected={handleFileSelected}
-            accept=".pdf"
-            multiple={false}
-            disabled={isProcessing}
-          />
-        )}
+      <div className="space-y-8">
+        <AnimatePresence mode="wait">
+          {!results ? (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <FileDropZone
+                onFilesSelected={handleFilesSelected}
+                selectedFiles={file ? [file] : []}
+                onRemoveFile={handleRemoveFile}
+                multiple={false}
+              />
 
-        {/* File Info & Options */}
-        {file && !results && (
-          <>
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium truncate">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {pageCount} page{pageCount !== 1 ? "s" : ""} • {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={isProcessing}
-                  >
-                    Change file
-                  </Button>
-                </div>
-
-                <Tabs value={splitMode} onValueChange={(v) => setSplitMode(v as "all" | "ranges")}>
-                  <TabsList className="grid w-full grid-cols-2">
-                    <TabsTrigger value="all">Split All Pages</TabsTrigger>
-                    <TabsTrigger value="ranges">Custom Ranges</TabsTrigger>
-                  </TabsList>
-                  
-                  <TabsContent value="all" className="mt-4">
-                    <p className="text-muted-foreground">
-                      Split the PDF into {pageCount} individual page{pageCount !== 1 ? "s" : ""}.
-                      Each page will be saved as a separate PDF file.
-                    </p>
-                  </TabsContent>
-                  
-                  <TabsContent value="ranges" className="mt-4 space-y-4">
-                    <p className="text-muted-foreground mb-4">
-                      Define custom page ranges to extract specific sections.
-                    </p>
-                    
-                    {ranges.map((range, index) => (
-                      <div key={index} className="flex items-center gap-3">
-                        <div className="flex-1 grid grid-cols-2 gap-3">
-                          <div>
-                            <Label className="text-xs text-muted-foreground">From</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={pageCount}
-                              value={range.start}
-                              onChange={(e) => handleRangeChange(index, "start", parseInt(e.target.value) || 1)}
-                              className="bg-secondary"
-                            />
-                          </div>
-                          <div>
-                            <Label className="text-xs text-muted-foreground">To</Label>
-                            <Input
-                              type="number"
-                              min={1}
-                              max={pageCount}
-                              value={range.end}
-                              onChange={(e) => handleRangeChange(index, "end", parseInt(e.target.value) || 1)}
-                              className="bg-secondary"
-                            />
-                          </div>
-                        </div>
-                        {ranges.length > 1 && (
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => handleRemoveRange(index)}
-                            className="mt-5 text-destructive hover:text-destructive"
-                          >
-                            <X className="w-4 h-4" />
-                          </Button>
-                        )}
-                      </div>
-                    ))}
-                    
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleAddRange}
-                      className="w-full bg-transparent"
-                    >
-                      <Plus className="w-4 h-4 mr-2" />
-                      Add Range
-                    </Button>
-                  </TabsContent>
-                </Tabs>
-              </CardContent>
-            </Card>
-          </>
-        )}
-
-        {/* Processing Progress */}
-        {isProcessing && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-4">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="font-medium">Splitting PDF...</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
-                {Math.round(progress)}% complete
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results */}
-        {results && (
-          <Card className="bg-card border-border gradient-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Split Complete!</h3>
-                  <p className="text-muted-foreground">
-                    Created {results.length} file{results.length !== 1 ? "s" : ""}
-                  </p>
-                </div>
-              </div>
-              
-              <div className="space-y-2 max-h-64 overflow-y-auto mb-6">
-                {results.map((result, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border"
-                  >
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <FileText className="w-4 h-4 text-primary" />
+              {file && !isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-8 rounded-2xl bg-card border border-border space-y-6"
+                >
+                  <div className="space-y-4">
+                    <div className="space-y-1">
+                      <label className="text-sm font-black tracking-widest text-muted-foreground uppercase">
+                        Page Ranges (Optional)
+                      </label>
+                      <Input
+                        placeholder="e.g. 1, 2-5, 8 (Leave empty to split every page)"
+                        value={ranges}
+                        onChange={(e) => setRanges(e.target.value)}
+                        className="h-12 bg-secondary border-border font-bold"
+                      />
+                      <p className="text-xs text-muted-foreground">Use commas for separate pages and hyphens for ranges.</p>
                     </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate text-sm">{result.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {(result.data.length / 1024).toFixed(1)} KB
-                      </p>
-                    </div>
+
                     <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => handleDownloadSingle(index)}
+                      size="lg"
+                      onClick={handleSplit}
+                      className="w-full h-14 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-[1.02] transition-transform"
                     >
-                      <Download className="w-4 h-4" />
+                      Split PDF <Scissors className="ml-2 w-5 h-5" />
                     </Button>
                   </div>
-                ))}
-              </div>
+                </motion.div>
+              )}
+
+              {isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-12 rounded-2xl bg-card border border-primary/20 text-center space-y-6"
+                >
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                    <RefreshCw className="w-10 h-10 text-primary animate-spin" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black">Splitting Document...</h3>
+                    <p className="text-muted-foreground">Extracting pages and creating new PDF files.</p>
+                  </div>
+                  <div className="max-w-md mx-auto space-y-2">
+                    <Progress value={progress} className="h-3 bg-secondary" />
+                    <p className="text-sm font-bold text-primary">{progress}% Complete</p>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="result"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-12 rounded-2xl bg-card border border-primary/30 text-center space-y-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-primary" />
               
-              <div className="flex gap-3">
+              <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black">Split Complete!</h2>
+                <p className="text-muted-foreground text-lg">
+                  Your PDF has been split into {results.length} file{results.length !== 1 ? "s" : ""}.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 max-w-md mx-auto">
+                <div className="p-4 rounded-xl bg-secondary/50 border border-border flex items-center gap-3">
+                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                    <FileText className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Output</p>
+                    <p className="font-bold">{results.length} Files</p>
+                  </div>
+                </div>
+                <div className="p-4 rounded-xl bg-secondary/50 border border-border flex items-center gap-3">
+                  <div className="w-10 h-10 rounded bg-primary/10 flex items-center justify-center">
+                    <Download className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">Format</p>
+                    <p className="font-bold">{results.length > 1 ? "ZIP Archive" : "PDF File"}</p>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                 <Button
-                  className="flex-1 gradient-primary border-0"
+                  size="lg"
                   onClick={handleDownloadAll}
+                  className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download {results.length > 1 ? "All (ZIP)" : "PDF"}
+                  Download {results.length > 1 ? "All as ZIP" : "PDF"} <Download className="ml-2 w-5 h-5" />
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
-                  className="bg-transparent"
                   onClick={handleReset}
+                  className="h-14 px-10 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors"
                 >
-                  Split Another
+                  Split Another <RefreshCw className="ml-2 w-5 h-5" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Action Button */}
-        {file && !results && !isProcessing && (
-          <Button
-            size="lg"
-            className="w-full gradient-primary border-0 h-14 text-lg"
-            onClick={handleSplit}
-          >
-            <Scissors className="w-5 h-5 mr-2" />
-            {splitMode === "all" 
-              ? `Split into ${pageCount} Pages` 
-              : `Extract ${ranges.length} Range${ranges.length !== 1 ? "s" : ""}`
-            }
-          </Button>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </ToolLayout>
   );

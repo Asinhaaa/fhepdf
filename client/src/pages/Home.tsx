@@ -1,445 +1,242 @@
-import { useAuth } from "@/_core/hooks/useAuth";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Link } from "wouter";
+import { motion } from "framer-motion";
 import { 
-  Shield, 
-  Lock, 
-  FileText, 
   Merge, 
   Scissors, 
   Minimize2, 
   RefreshCw, 
   Search, 
-  Zap, 
-  Eye, 
-  Server,
-  ChevronRight,
-  Github,
+  ShieldCheck, 
+  Lock,
   ArrowRight,
-  CheckCircle2,
-  Sparkles
+  Zap,
+  Shield,
+  Key
 } from "lucide-react";
-import { Link } from "wouter";
-import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
 
 const tools = [
   {
-    title: "Merge PDFs",
-    description: "Combine multiple PDF files into a single document",
-    icon: Merge,
+    id: "merge",
+    title: "Merge PDF",
+    description: "Combine multiple PDF files into one document.",
+    icon: <Merge className="w-6 h-6" />,
     href: "/tools/merge",
-    color: "from-purple-500 to-indigo-600"
+    color: "bg-blue-500/10 text-blue-500",
   },
   {
+    id: "split",
     title: "Split PDF",
-    description: "Extract pages or split into multiple files",
-    icon: Scissors,
+    description: "Extract pages or split into separate files.",
+    icon: <Scissors className="w-6 h-6" />,
     href: "/tools/split",
-    color: "from-pink-500 to-rose-600"
+    color: "bg-green-500/10 text-green-500",
   },
   {
+    id: "compress",
     title: "Compress PDF",
-    description: "Reduce file size while maintaining quality",
-    icon: Minimize2,
+    description: "Reduce file size while keeping quality.",
+    icon: <Minimize2 className="w-6 h-6" />,
     href: "/tools/compress",
-    color: "from-amber-500 to-orange-600"
+    color: "bg-orange-500/10 text-orange-500",
   },
   {
-    title: "Convert PDF",
-    description: "Convert PDFs to images and other formats",
-    icon: RefreshCw,
+    id: "convert",
+    title: "PDF to Image",
+    description: "Convert PDF pages to PNG or JPEG images.",
+    icon: <RefreshCw className="w-6 h-6" />,
     href: "/tools/convert",
-    color: "from-emerald-500 to-teal-600"
+    color: "bg-purple-500/10 text-purple-500",
   },
   {
-    title: "FHE Encrypted Search",
-    description: "Privacy-preserving text search using homomorphic encryption",
-    icon: Search,
-    href: "/tools/encrypted-search",
-    color: "from-cyan-500 to-blue-600",
-    featured: true
-  }
+    id: "search",
+    title: "Encrypted Search",
+    description: "Search inside PDFs using FHE privacy.",
+    icon: <Search className="w-6 h-6" />,
+    href: "/tools/search",
+    color: "bg-primary/10 text-primary",
+    isFhe: true,
+  },
 ];
 
-const features = [
-  {
-    icon: Shield,
-    title: "100% Client-Side Processing",
-    description: "Your files never leave your device. All PDF operations happen locally in your browser."
-  },
-  {
-    icon: Lock,
-    title: "Fully Homomorphic Encryption",
-    description: "Search encrypted PDFs without decrypting. Powered by Zama's cutting-edge FHE technology."
-  },
-  {
-    icon: Eye,
-    title: "Zero Knowledge",
-    description: "We can't see your files, your searches, or your results. True privacy by design."
-  },
-  {
-    icon: Server,
-    title: "Self-Hostable",
-    description: "Deploy on your own infrastructure for complete control over your data."
+const container = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: {
+      staggerChildren: 0.1
+    }
   }
-];
+};
 
-const stats = [
-  { value: "0", label: "Data Sent to Server" },
-  { value: "100%", label: "Client-Side Processing" },
-  { value: "∞", label: "Privacy Guaranteed" }
-];
+const item = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0 }
+};
 
 export default function Home() {
-  const { user, isAuthenticated } = useAuth();
-
   return (
-    <div className="min-h-screen bg-background">
-      {/* Navigation */}
-      <nav className="fixed top-0 left-0 right-0 z-50 glass">
-        <div className="container flex items-center justify-between h-16">
-          <Link href="/" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-              <FileText className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg">FHE<span className="text-gradient">Pdf</span></span>
-          </Link>
-          
-          <div className="hidden md:flex items-center gap-6">
-            <Link href="/tools/merge" className="text-muted-foreground hover:text-foreground transition-colors">
-              Tools
-            </Link>
-            <Link href="/docs" className="text-muted-foreground hover:text-foreground transition-colors">
-              Documentation
-            </Link>
-            <a 
-              href="https://github.com/asinhaaa" 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors"
-            >
-              <Github className="w-5 h-5" />
-            </a>
-          </div>
-
-          <div className="flex items-center gap-3">
-            {isAuthenticated ? (
-              <Link href="/dashboard">
-                <Button variant="default" className="gradient-primary border-0">
-                  Dashboard
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            ) : (
-              <Link href="/dashboard">
-                <Button variant="default" className="gradient-primary border-0">
-                  Get Started
-                  <ChevronRight className="w-4 h-4 ml-1" />
-                </Button>
-              </Link>
-            )}
-          </div>
-        </div>
-      </nav>
-
+    <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
       {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        {/* Background Effects */}
-        <div className="absolute inset-0 gradient-glow opacity-50" />
-        <div className="absolute top-1/4 left-1/4 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-1/4 right-1/4 w-96 h-96 bg-accent/10 rounded-full blur-3xl" />
-        
-        <div className="container relative">
-          <div className="max-w-4xl mx-auto text-center">
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-            >
-              <Badge variant="secondary" className="mb-6 px-4 py-2 text-sm">
-                <Sparkles className="w-4 h-4 mr-2 text-accent" />
-                Powered by Zama FHE Technology
-              </Badge>
-            </motion.div>
-            
-            <motion.h1 
-              className="text-5xl md:text-7xl font-bold mb-6 tracking-tight"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.1 }}
-            >
-              PDF Tools with
-              <br />
-              <span className="text-gradient">True Privacy</span>
-            </motion.h1>
-            
-            <motion.p 
-              className="text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.2 }}
-            >
-              Process your PDFs entirely in your browser. No uploads, no servers, no compromises. 
-              Featuring the world's first FHE-powered encrypted document search.
-            </motion.p>
-            
-            <motion.div 
-              className="flex flex-col sm:flex-row gap-4 justify-center"
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, delay: 0.3 }}
-            >
-              <Link href="/tools/encrypted-search">
-                <Button size="lg" className="gradient-primary border-0 text-lg px-8 h-14 hover-glow">
-                  <Search className="w-5 h-5 mr-2" />
-                  Try FHE Search
-                </Button>
-              </Link>
-              <Link href="/docs">
-                <Button size="lg" variant="outline" className="text-lg px-8 h-14 bg-transparent">
-                  Learn More
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-            </motion.div>
-          </div>
+      <header className="relative pt-20 pb-32 overflow-hidden">
+        {/* Background Decorative Elements */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
+          <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-primary/10 blur-[120px] rounded-full" />
+          <div className="absolute bottom-[10%] right-[-5%] w-[30%] h-[30%] bg-primary/5 blur-[100px] rounded-full" />
+        </div>
 
-          {/* Stats */}
-          <motion.div 
-            className="grid grid-cols-3 gap-8 max-w-2xl mx-auto mt-16"
+        <div className="container relative z-10 text-center">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-black tracking-[0.2em] mb-8"
+          >
+            <ShieldCheck className="w-4 h-4" />
+            100% CLIENT-SIDE PRIVACY
+          </motion.div>
+          
+          <motion.h1
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.5, delay: 0.4 }}
+            transition={{ delay: 0.1, duration: 0.5 }}
+            className="text-6xl md:text-8xl font-black tracking-tighter mb-6 leading-[0.9]"
           >
-            {stats.map((stat, index) => (
-              <div key={index} className="text-center">
-                <div className="text-3xl md:text-4xl font-bold text-gradient">{stat.value}</div>
-                <div className="text-sm text-muted-foreground mt-1">{stat.label}</div>
-              </div>
-            ))}
+            SECURE YOUR <br />
+            <span className="text-primary">DOCUMENTS.</span>
+          </motion.h1>
+          
+          <motion.p
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2, duration: 0.5 }}
+            className="text-xl text-muted-foreground max-w-2xl mx-auto mb-10 font-medium"
+          >
+            The world's first PDF toolkit powered by Fully Homomorphic Encryption. 
+            Process, merge, and search your files without ever decrypting them.
+          </motion.p>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3, duration: 0.5 }}
+            className="flex flex-wrap justify-center gap-4"
+          >
+            <Button size="lg" className="h-14 px-8 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform">
+              Get Started <ArrowRight className="ml-2 w-5 h-5" />
+            </Button>
+            <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors">
+              View on GitHub
+            </Button>
           </motion.div>
         </div>
-      </section>
-
-      {/* Privacy Indicator */}
-      <section className="py-8">
-        <div className="container">
-          <div className="flex items-center justify-center gap-3 text-accent">
-            <div className="w-3 h-3 rounded-full bg-accent privacy-pulse" />
-            <span className="text-sm font-medium">All processing happens locally in your browser</span>
-          </div>
-        </div>
-      </section>
+      </header>
 
       {/* Tools Grid */}
-      <section className="py-20">
-        <div className="container">
-          <div className="text-center mb-12">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">PDF Tools</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Everything you need to work with PDFs, all processed client-side for maximum privacy.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-            {tools.map((tool, index) => (
-              <Link key={tool.title} href={tool.href}>
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ duration: 0.5, delay: index * 0.1 }}
-                >
-                  <Card className={`h-full cursor-pointer transition-all duration-300 hover-glow bg-card border-border ${tool.featured ? 'gradient-border' : ''}`}>
-                    <CardHeader>
-                      <div className={`w-12 h-12 rounded-xl bg-gradient-to-br ${tool.color} flex items-center justify-center mb-4`}>
-                        <tool.icon className="w-6 h-6 text-white" />
-                      </div>
-                      <CardTitle className="flex items-center gap-2">
-                        {tool.title}
-                        {tool.featured && (
-                          <Badge variant="secondary" className="text-xs bg-accent/20 text-accent">
-                            FHE
-                          </Badge>
-                        )}
-                      </CardTitle>
-                      <CardDescription>{tool.description}</CardDescription>
-                    </CardHeader>
-                  </Card>
-                </motion.div>
-              </Link>
-            ))}
-          </div>
+      <section className="container py-20">
+        <div className="flex items-center justify-between mb-12">
+          <h2 className="text-3xl font-black tracking-tight">POWERFUL TOOLS</h2>
+          <div className="h-px flex-1 bg-border mx-8 hidden md:block" />
+          <p className="text-sm font-bold text-muted-foreground tracking-widest uppercase">5 TOOLS AVAILABLE</p>
         </div>
+
+        <motion.div
+          variants={container}
+          initial="hidden"
+          whileInView="show"
+          viewport={{ once: true }}
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
+        >
+          {tools.map((tool) => (
+            <motion.div key={tool.id} variants={item}>
+              <Link href={tool.href}>
+                <div className="group relative h-full p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer overflow-hidden">
+                  {/* Hover Background */}
+                  <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
+                  
+                  <div className="relative z-10">
+                    <div className={`w-14 h-14 rounded-xl ${tool.color} flex items-center justify-center mb-6 group-hover:scale-110 transition-transform duration-300`}>
+                      {tool.icon}
+                    </div>
+                    
+                    <div className="flex items-center gap-2 mb-3">
+                      <h3 className="text-2xl font-black tracking-tight">{tool.title}</h3>
+                      {tool.isFhe && (
+                        <div className="flex items-center gap-1 px-2 py-1 rounded bg-primary text-black text-[10px] font-black tracking-tighter">
+                          <Lock className="w-3 h-3" /> FHE
+                        </div>
+                      )}
+                    </div>
+                    
+                    <p className="text-muted-foreground font-medium mb-8">
+                      {tool.description}
+                    </p>
+                    
+                    <div className="flex items-center text-sm font-black tracking-widest text-primary opacity-0 group-hover:opacity-100 transition-all translate-x-[-10px] group-hover:translate-x-0">
+                      OPEN TOOL <ArrowRight className="ml-2 w-4 h-4" />
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            </motion.div>
+          ))}
+        </motion.div>
       </section>
 
       {/* Features Section */}
-      <section className="py-20 relative">
-        <div className="absolute inset-0 gradient-glow opacity-30" />
-        <div className="container relative">
-          <div className="text-center mb-12">
-            <Badge variant="secondary" className="mb-4">
-              <Lock className="w-4 h-4 mr-2" />
-              Privacy First
-            </Badge>
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">Why FHEPdf?</h2>
-            <p className="text-muted-foreground max-w-2xl mx-auto">
-              Built from the ground up with privacy as the core principle, not an afterthought.
-            </p>
-          </div>
-
-          <div className="grid md:grid-cols-2 gap-8 max-w-4xl mx-auto">
-            {features.map((feature, index) => (
-              <motion.div
-                key={feature.title}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ duration: 0.5, delay: index * 0.1 }}
-              >
-                <Card className="h-full bg-card/50 backdrop-blur border-border">
-                  <CardContent className="pt-6">
-                    <div className="flex gap-4">
-                      <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <feature.icon className="w-6 h-6 text-primary" />
-                      </div>
-                      <div>
-                        <h3 className="font-semibold text-lg mb-2">{feature.title}</h3>
-                        <p className="text-muted-foreground">{feature.description}</p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* FHE Explainer Section */}
-      <section className="py-20">
+      <section className="bg-secondary/30 py-32 border-y border-border">
         <div className="container">
-          <div className="max-w-4xl mx-auto">
-            <Card className="gradient-border overflow-hidden">
-              <CardContent className="p-8 md:p-12">
-                <div className="grid md:grid-cols-2 gap-8 items-center">
-                  <div>
-                    <Badge variant="secondary" className="mb-4 bg-accent/20 text-accent">
-                      <Zap className="w-4 h-4 mr-2" />
-                      Zama FHE Technology
-                    </Badge>
-                    <h2 className="text-2xl md:text-3xl font-bold mb-4">
-                      Search Without Revealing
-                    </h2>
-                    <p className="text-muted-foreground mb-6">
-                      Fully Homomorphic Encryption allows computations on encrypted data without ever decrypting it. 
-                      Search your documents while keeping both the query and content completely private.
-                    </p>
-                    <ul className="space-y-3">
-                      {[
-                        "Encrypted search queries",
-                        "Results computed on ciphertext",
-                        "Zero knowledge of document contents",
-                        "Powered by Zama's Concrete library"
-                      ].map((item, index) => (
-                        <li key={index} className="flex items-center gap-3">
-                          <CheckCircle2 className="w-5 h-5 text-accent" />
-                          <span>{item}</span>
-                        </li>
-                      ))}
-                    </ul>
-                    <div className="mt-8">
-                      <Link href="/docs">
-                        <Button variant="outline" className="bg-transparent">
-                          Read the Technical Docs
-                          <ArrowRight className="w-4 h-4 ml-2" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </div>
-                  <div className="relative">
-                    <div className="aspect-square rounded-2xl bg-gradient-to-br from-primary/20 to-accent/20 flex items-center justify-center">
-                      <div className="relative">
-                        <Shield className="w-32 h-32 text-primary/50 shield-pulse" />
-                        <div className="absolute inset-0 flex items-center justify-center">
-                          <Lock className="w-12 h-12 text-accent" />
-                        </div>
-                      </div>
-                    </div>
-                    {/* Floating particles */}
-                    <div className="absolute top-4 right-4 w-4 h-4 rounded-full bg-primary/50 particle" style={{ animationDelay: '0s' }} />
-                    <div className="absolute bottom-8 left-8 w-3 h-3 rounded-full bg-accent/50 particle" style={{ animationDelay: '1s' }} />
-                    <div className="absolute top-1/2 right-8 w-2 h-2 rounded-full bg-primary/50 particle" style={{ animationDelay: '2s' }} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container">
-          <div className="max-w-3xl mx-auto text-center">
-            <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Process PDFs Privately?
-            </h2>
-            <p className="text-muted-foreground mb-8">
-              No sign-up required. Start using our tools immediately with full privacy guarantees.
-            </p>
-            <div className="flex flex-col sm:flex-row gap-4 justify-center">
-              <Link href="/tools/merge">
-                <Button size="lg" className="gradient-primary border-0 text-lg px-8 h-14 hover-glow">
-                  Start Processing
-                  <ArrowRight className="w-5 h-5 ml-2" />
-                </Button>
-              </Link>
-              <a href="https://github.com/asinhaaa" target="_blank" rel="noopener noreferrer">
-                <Button size="lg" variant="outline" className="text-lg px-8 h-14 bg-transparent">
-                  <Github className="w-5 h-5 mr-2" />
-                  View on GitHub
-                </Button>
-              </a>
+          <div className="grid md:grid-cols-3 gap-12">
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Zap className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-3xl font-black tracking-tight">LIGHTNING FAST</h3>
+              <p className="text-lg text-muted-foreground font-medium">
+                Optimized WASM-based processing ensures your files are handled in milliseconds, right in your browser.
+              </p>
+            </div>
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Shield className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-3xl font-black tracking-tight">ZERO TRUST</h3>
+              <p className="text-lg text-muted-foreground font-medium">
+                We never see your data. No uploads, no servers, no logs. Your privacy is mathematically guaranteed.
+              </p>
+            </div>
+            <div className="space-y-6">
+              <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center">
+                <Key className="w-8 h-8 text-primary" />
+              </div>
+              <h3 className="text-3xl font-black tracking-tight">FHE POWERED</h3>
+              <p className="text-lg text-muted-foreground font-medium">
+                Search through encrypted documents without ever revealing the content or your search query.
+              </p>
             </div>
           </div>
         </div>
       </section>
 
       {/* Footer */}
-      <footer className="py-12 border-t border-border">
-        <div className="container">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-6">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-lg gradient-primary flex items-center justify-center">
-                <FileText className="w-5 h-5 text-white" />
-              </div>
-              <span className="font-bold">FHE<span className="text-gradient">Pdf</span></span>
+      <footer className="py-20 border-t border-border">
+        <div className="container flex flex-col md:flex-row justify-between items-center gap-8">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded bg-primary flex items-center justify-center">
+              <span className="font-black text-black text-xs">FHE</span>
             </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <Link href="/docs" className="hover:text-foreground transition-colors">
-                Documentation
-              </Link>
-              <a 
-                href="https://github.com/asinhaaa" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors"
-              >
-                GitHub
-              </a>
-              <a 
-                href="https://www.zama.ai/" 
-                target="_blank" 
-                rel="noopener noreferrer"
-                className="hover:text-foreground transition-colors"
-              >
-                Powered by Zama
-              </a>
-            </div>
-            <div className="text-sm text-muted-foreground">
-              Built with privacy-first PDF processing
-            </div>
+            <span className="font-black tracking-tighter text-2xl">FheDF</span>
           </div>
+          
+          <div className="flex gap-8 text-sm font-bold text-muted-foreground">
+            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
+            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
+            <a href="#" className="hover:text-primary transition-colors">GitHub</a>
+          </div>
+          
+          <p className="text-sm text-muted-foreground font-medium">
+            © 2025 FheDF. Built for the private web.
+          </p>
         </div>
       </footer>
     </div>

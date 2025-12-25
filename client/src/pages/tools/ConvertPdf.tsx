@@ -1,37 +1,38 @@
 import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { RefreshCw, Download, CheckCircle2, Image as ImageIcon, FileText } from "lucide-react";
 import { ToolLayout } from "@/components/ToolLayout";
 import { FileDropZone } from "@/components/FileDropZone";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
-import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
-import { Label } from "@/components/ui/label";
-import { Slider } from "@/components/ui/slider";
 import { 
-  RefreshCw, 
-  Download, 
-  Loader2, 
-  CheckCircle2, 
-  FileText,
-  Image,
-  FileImage
-} from "lucide-react";
-import { convertPdfToImages, downloadAsZip, downloadFile } from "@/lib/pdfUtils";
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { convertPdfToImages, downloadFile, downloadAsZip } from "@/lib/pdfUtils";
 import { toast } from "sonner";
-
-type OutputFormat = "png" | "jpeg";
 
 export default function ConvertPdf() {
   const [file, setFile] = useState<File | null>(null);
-  const [format, setFormat] = useState<OutputFormat>("png");
-  const [scale, setScale] = useState(2);
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
-  const [results, setResults] = useState<{ name: string; data: Blob }[] | null>(null);
+  const [format, setFormat] = useState<"png" | "jpeg">("png");
+  const [results, setResults] = useState<{ name: string; data: Uint8Array }[] | null>(null);
   const [previews, setPreviews] = useState<string[]>([]);
 
-  const handleFileSelected = useCallback((files: File[]) => {
-    setFile(files[0]);
+  const handleFilesSelected = useCallback((files: File[]) => {
+    if (files.length > 0) {
+      setFile(files[0]);
+      setResults(null);
+      setPreviews([]);
+    }
+  }, []);
+
+  const handleRemoveFile = useCallback(() => {
+    setFile(null);
     setResults(null);
     setPreviews([]);
   }, []);
@@ -43,12 +44,15 @@ export default function ConvertPdf() {
     setProgress(0);
 
     try {
-      const images = await convertPdfToImages(file, format, scale, setProgress);
+      const images = await convertPdfToImages(file, format, setProgress);
       setResults(images);
       
       // Generate previews for first few images
       const previewUrls = await Promise.all(
-        images.slice(0, 4).map(img => URL.createObjectURL(img.data))
+        images.slice(0, 4).map(img => {
+          const blob = new Blob([img.data], { type: `image/${format}` });
+          return URL.createObjectURL(blob);
+        })
       );
       setPreviews(previewUrls);
       
@@ -72,27 +76,23 @@ export default function ConvertPdf() {
   };
 
   const handleDownloadAll = async () => {
-    if (results && results.length > 0) {
+    if (results && results.length > 0 && file) {
       try {
         if (results.length === 1) {
           downloadFile(results[0].data, results[0].name);
         } else {
           await downloadAsZip(
             results.map(r => ({ name: r.name, data: r.data })),
-            `${file?.name.replace(".pdf", "")}_images.zip`
+            `${file.name.replace(".pdf", "")}_images.zip`
           );
         }
-        toast.success("Download started!");
       } catch (error) {
-        console.error("Download error:", error);
         toast.error("Failed to download files.");
       }
     }
   };
 
   const handleReset = () => {
-    // Clean up preview URLs
-    previews.forEach(url => URL.revokeObjectURL(url));
     setFile(null);
     setResults(null);
     setPreviews([]);
@@ -101,207 +101,160 @@ export default function ConvertPdf() {
 
   return (
     <ToolLayout
-      title="Convert PDF"
-      description="Convert PDF pages to high-quality images"
-      icon={<RefreshCw className="w-8 h-8 text-white" />}
-      iconColor="from-emerald-500 to-teal-600"
+      title="PDF to Image"
+      description="Convert each PDF page into a high-quality PNG or JPEG image."
+      badge="CONVERT"
     >
-      <div className="space-y-6">
-        {/* File Drop Zone */}
-        {!file && (
-          <FileDropZone
-            onFilesSelected={handleFileSelected}
-            accept=".pdf"
-            multiple={false}
-            disabled={isProcessing}
-          />
-        )}
+      <div className="space-y-8">
+        <AnimatePresence mode="wait">
+          {!results ? (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <FileDropZone
+                onFilesSelected={handleFilesSelected}
+                selectedFiles={file ? [file] : []}
+                onRemoveFile={handleRemoveFile}
+                multiple={false}
+              />
 
-        {/* File Info & Options */}
-        {file && !results && (
-          <>
-            <Card className="bg-card border-border">
-              <CardContent className="pt-6">
-                <div className="flex items-center gap-4 mb-6">
-                  <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
-                    <FileText className="w-6 h-6 text-primary" />
-                  </div>
-                  <div className="flex-1">
-                    <p className="font-medium truncate">{file.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {(file.size / 1024 / 1024).toFixed(2)} MB
-                    </p>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={handleReset}
-                    disabled={isProcessing}
-                  >
-                    Change file
-                  </Button>
-                </div>
-
-                <div className="space-y-6">
-                  {/* Format Selection */}
-                  <div className="space-y-4">
-                    <Label className="text-base font-medium">Output Format</Label>
-                    <RadioGroup
-                      value={format}
-                      onValueChange={(v) => setFormat(v as OutputFormat)}
-                      className="grid grid-cols-2 gap-4"
-                    >
-                      <div
-                        className={`flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer ${
-                          format === "png"
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => setFormat("png")}
+              {file && !isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-8 rounded-2xl bg-card border border-border space-y-6"
+                >
+                  <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
+                    <div className="space-y-1">
+                      <label className="text-sm font-black tracking-widest text-muted-foreground uppercase">
+                        Output Format
+                      </label>
+                      <Select
+                        value={format}
+                        onValueChange={(v: any) => setFormat(v)}
                       >
-                        <RadioGroupItem value="png" id="png" />
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <Image className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <Label htmlFor="png" className="font-medium cursor-pointer">PNG</Label>
-                          <p className="text-xs text-muted-foreground">Lossless, transparent</p>
-                        </div>
-                      </div>
-                      
-                      <div
-                        className={`flex items-center gap-3 p-4 rounded-lg border transition-colors cursor-pointer ${
-                          format === "jpeg"
-                            ? "border-primary bg-primary/5"
-                            : "border-border hover:border-primary/50"
-                        }`}
-                        onClick={() => setFormat("jpeg")}
-                      >
-                        <RadioGroupItem value="jpeg" id="jpeg" />
-                        <div className="w-10 h-10 rounded-lg bg-secondary flex items-center justify-center">
-                          <FileImage className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <Label htmlFor="jpeg" className="font-medium cursor-pointer">JPEG</Label>
-                          <p className="text-xs text-muted-foreground">Smaller size</p>
-                        </div>
-                      </div>
-                    </RadioGroup>
-                  </div>
-
-                  {/* Quality/Scale Selection */}
-                  <div className="space-y-4">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-base font-medium">Image Quality</Label>
-                      <span className="text-sm text-muted-foreground">{scale}x resolution</span>
+                        <SelectTrigger className="w-full md:w-[240px] h-12 bg-secondary border-border font-bold">
+                          <SelectValue placeholder="Select format" />
+                        </SelectTrigger>
+                        <SelectContent className="bg-card border-border">
+                          <SelectItem value="png" className="font-bold">PNG (Lossless)</SelectItem>
+                          <SelectItem value="jpeg" className="font-bold">JPEG (Smaller Size)</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
-                    <Slider
-                      value={[scale]}
-                      onValueChange={([v]) => setScale(v)}
-                      min={1}
-                      max={4}
-                      step={0.5}
-                      className="w-full"
-                    />
-                    <div className="flex justify-between text-xs text-muted-foreground">
-                      <span>Smaller files</span>
-                      <span>Higher quality</span>
-                    </div>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </>
-        )}
 
-        {/* Processing Progress */}
-        {isProcessing && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-4">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="font-medium">Converting PDF to images...</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
-                {Math.round(progress)}% complete
-              </p>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Results */}
-        {results && (
-          <Card className="bg-card border-border gradient-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Conversion Complete!</h3>
-                  <p className="text-muted-foreground">
-                    {results.length} {format.toUpperCase()} image{results.length !== 1 ? "s" : ""} created
-                  </p>
-                </div>
-              </div>
-              
-              {/* Image Previews */}
-              {previews.length > 0 && (
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-6">
-                  {previews.map((url, index) => (
-                    <div
-                      key={index}
-                      className="aspect-[3/4] rounded-lg overflow-hidden bg-secondary border border-border"
+                    <Button
+                      size="lg"
+                      onClick={handleConvert}
+                      className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
                     >
-                      <img
-                        src={url}
-                        alt={`Page ${index + 1}`}
-                        className="w-full h-full object-cover"
-                      />
-                    </div>
-                  ))}
-                  {results.length > 4 && (
-                    <div className="aspect-[3/4] rounded-lg bg-secondary border border-border flex items-center justify-center">
-                      <span className="text-muted-foreground">
-                        +{results.length - 4} more
-                      </span>
-                    </div>
-                  )}
-                </div>
+                      Convert to Image <RefreshCw className="ml-2 w-5 h-5" />
+                    </Button>
+                  </div>
+                </motion.div>
               )}
-              
-              <div className="flex gap-3">
-                <Button
-                  className="flex-1 gradient-primary border-0"
-                  onClick={handleDownloadAll}
+
+              {isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-12 rounded-2xl bg-card border border-primary/20 text-center space-y-6"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download {results.length > 1 ? "All (ZIP)" : "Image"}
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                    <RefreshCw className="w-10 h-10 text-primary animate-spin" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black">Converting Pages...</h3>
+                    <p className="text-muted-foreground">Rendering PDF pages as high-quality images.</p>
+                  </div>
+                  <div className="max-w-md mx-auto space-y-2">
+                    <Progress value={progress} className="h-3 bg-secondary" />
+                    <p className="text-sm font-bold text-primary">{progress}% Complete</p>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="result"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-12 rounded-2xl bg-card border border-primary/30 text-center space-y-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-primary" />
+              
+              <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black">Conversion Complete!</h2>
+                <p className="text-muted-foreground text-lg">
+                  {results.length} page{results.length !== 1 ? "s" : ""} converted successfully.
+                </p>
+              </div>
+
+              {/* Previews */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-2xl mx-auto">
+                {previews.map((url, i) => (
+                  <motion.div
+                    key={i}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: i * 0.1 }}
+                    className="aspect-[3/4] rounded-lg bg-secondary border border-border overflow-hidden relative group"
+                  >
+                    <img src={url} alt={`Page ${i + 1}`} className="w-full h-full object-cover" />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                      <span className="text-[10px] font-black text-white bg-primary/20 px-2 py-1 rounded">PAGE {i + 1}</span>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
+                <Button
+                  size="lg"
+                  onClick={handleDownloadAll}
+                  className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
+                >
+                  Download {results.length > 1 ? "as ZIP" : "Image"} <Download className="ml-2 w-5 h-5" />
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
-                  className="bg-transparent"
                   onClick={handleReset}
+                  className="h-14 px-10 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors"
                 >
-                  Convert Another
+                  Convert Another <RefreshCw className="ml-2 w-5 h-5" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
-        {/* Action Button */}
-        {file && !results && !isProcessing && (
-          <Button
-            size="lg"
-            className="w-full gradient-primary border-0 h-14 text-lg"
-            onClick={handleConvert}
-          >
-            <RefreshCw className="w-5 h-5 mr-2" />
-            Convert to {format.toUpperCase()}
-          </Button>
-        )}
+        {/* Features */}
+        <div className="grid md:grid-cols-3 gap-6 pt-12">
+          <div className="p-6 rounded-xl bg-secondary/30 border border-border">
+            <ImageIcon className="w-8 h-8 text-primary mb-4" />
+            <h4 className="font-bold mb-2">High Quality</h4>
+            <p className="text-sm text-muted-foreground">Crisp, high-resolution images suitable for professional use.</p>
+          </div>
+          <div className="p-6 rounded-xl bg-secondary/30 border border-border">
+            <FileText className="w-8 h-8 text-primary mb-4" />
+            <h4 className="font-bold mb-2">All Pages</h4>
+            <p className="text-sm text-muted-foreground">Convert every page of your PDF or select specific ones.</p>
+          </div>
+          <div className="p-6 rounded-xl bg-secondary/30 border border-border">
+            <RefreshCw className="w-8 h-8 text-primary mb-4" />
+            <h4 className="font-bold mb-2">Batch Processing</h4>
+            <p className="text-sm text-muted-foreground">Convert multiple pages at once and download them as a single ZIP.</p>
+          </div>
+        </div>
       </div>
     </ToolLayout>
   );

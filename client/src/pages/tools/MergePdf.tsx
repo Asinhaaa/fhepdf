@@ -1,10 +1,10 @@
 import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Merge, Download, RefreshCw, CheckCircle2, Plus } from "lucide-react";
 import { ToolLayout } from "@/components/ToolLayout";
-import { FileDropZone, FileList } from "@/components/FileDropZone";
+import { FileDropZone } from "@/components/FileDropZone";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
-import { Card, CardContent } from "@/components/ui/card";
-import { Merge, Download, Loader2, CheckCircle2, GripVertical } from "lucide-react";
 import { mergePdfs, downloadFile } from "@/lib/pdfUtils";
 import { toast } from "sonner";
 
@@ -51,7 +51,6 @@ export default function MergePdf() {
   const handleDownload = () => {
     if (result) {
       downloadFile(result, "merged.pdf");
-      toast.success("Download started!");
     }
   };
 
@@ -61,171 +60,126 @@ export default function MergePdf() {
     setProgress(0);
   };
 
-  // Drag and drop reordering
-  const moveFile = (fromIndex: number, toIndex: number) => {
-    const newFiles = [...files];
-    const [removed] = newFiles.splice(fromIndex, 1);
-    newFiles.splice(toIndex, 0, removed);
-    setFiles(newFiles);
-    setResult(null);
-  };
-
   return (
     <ToolLayout
-      title="Merge PDFs"
-      description="Combine multiple PDF files into a single document. Drag to reorder."
-      icon={<Merge className="w-8 h-8 text-white" />}
-      iconColor="from-purple-500 to-indigo-600"
+      title="Merge PDF"
+      description="Combine multiple PDF files into a single document in seconds."
+      badge="ORGANIZE"
     >
-      <div className="space-y-6">
-        {/* File Drop Zone */}
-        {!result && (
-          <FileDropZone
-            onFilesSelected={handleFilesSelected}
-            accept=".pdf"
-            multiple={true}
-            maxFiles={20}
-            disabled={isProcessing}
-          />
-        )}
+      <div className="space-y-8">
+        <AnimatePresence mode="wait">
+          {!result ? (
+            <motion.div
+              key="upload"
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -20 }}
+              className="space-y-8"
+            >
+              <FileDropZone
+                onFilesSelected={handleFilesSelected}
+                selectedFiles={files}
+                onRemoveFile={handleRemoveFile}
+                multiple={true}
+                maxFiles={20}
+              />
 
-        {/* File List with Reordering */}
-        {files.length > 0 && !result && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="font-semibold">
-                  {files.length} file{files.length !== 1 ? "s" : ""} selected
-                </h3>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={handleReset}
-                  disabled={isProcessing}
+              {files.length > 0 && !isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  className="p-8 rounded-2xl bg-card border border-border flex flex-col md:flex-row items-center justify-between gap-6"
                 >
-                  Clear all
-                </Button>
-              </div>
-              
-              <div className="space-y-2">
-                {files.map((file, index) => (
-                  <div
-                    key={`${file.name}-${index}`}
-                    className="flex items-center gap-3 p-3 rounded-lg bg-secondary/50 border border-border group"
-                  >
-                    <div className="cursor-grab text-muted-foreground hover:text-foreground">
-                      <GripVertical className="w-5 h-5" />
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center">
+                      <Merge className="w-6 h-6 text-primary" />
                     </div>
-                    <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                      <span className="text-sm font-medium text-primary">{index + 1}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium truncate">{file.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {(file.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                    </div>
-                    <div className="flex gap-1">
-                      {index > 0 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveFile(index, index - 1)}
-                          disabled={isProcessing}
-                        >
-                          ↑
-                        </Button>
-                      )}
-                      {index < files.length - 1 && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => moveFile(index, index + 1)}
-                          disabled={isProcessing}
-                        >
-                          ↓
-                        </Button>
-                      )}
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleRemoveFile(index)}
-                        disabled={isProcessing}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        ×
-                      </Button>
+                    <div>
+                      <p className="text-lg font-bold">{files.length} Files Selected</p>
+                      <p className="text-sm text-muted-foreground">Ready to be merged into one PDF</p>
                     </div>
                   </div>
-                ))}
-              </div>
-            </CardContent>
-          </Card>
-        )}
 
-        {/* Processing Progress */}
-        {isProcessing && (
-          <Card className="bg-card border-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-4">
-                <Loader2 className="w-5 h-5 animate-spin text-primary" />
-                <span className="font-medium">Merging PDFs...</span>
-              </div>
-              <Progress value={progress} className="h-2" />
-              <p className="text-sm text-muted-foreground mt-2">
-                {Math.round(progress)}% complete
-              </p>
-            </CardContent>
-          </Card>
-        )}
+                  <div className="flex gap-3 w-full md:w-auto">
+                    <Button
+                      variant="outline"
+                      onClick={() => document.getElementById("file-input")?.click()}
+                      className="flex-1 md:flex-none h-12 px-6 font-bold border-white/10 hover:bg-white/5"
+                    >
+                      Add More <Plus className="ml-2 w-4 h-4" />
+                    </Button>
+                    <Button
+                      size="lg"
+                      onClick={handleMerge}
+                      disabled={files.length < 2}
+                      className="flex-1 md:flex-none h-12 px-10 font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform disabled:opacity-50"
+                    >
+                      Merge PDFs
+                    </Button>
+                  </div>
+                </motion.div>
+              )}
 
-        {/* Result */}
-        {result && (
-          <Card className="bg-card border-border gradient-border">
-            <CardContent className="pt-6">
-              <div className="flex items-center gap-4 mb-6">
-                <div className="w-12 h-12 rounded-xl bg-accent/20 flex items-center justify-center">
-                  <CheckCircle2 className="w-6 h-6 text-accent" />
-                </div>
-                <div>
-                  <h3 className="font-semibold text-lg">Merge Complete!</h3>
-                  <p className="text-muted-foreground">
-                    {files.length} files merged • {(result.length / 1024 / 1024).toFixed(2)} MB
-                  </p>
-                </div>
-              </div>
+              {isProcessing && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  className="p-12 rounded-2xl bg-card border border-primary/20 text-center space-y-6"
+                >
+                  <div className="w-20 h-20 rounded-full bg-primary/10 flex items-center justify-center mx-auto">
+                    <RefreshCw className="w-10 h-10 text-primary animate-spin" />
+                  </div>
+                  <div className="space-y-2">
+                    <h3 className="text-2xl font-black">Merging Documents...</h3>
+                    <p className="text-muted-foreground">Combining your files into a single PDF.</p>
+                  </div>
+                  <div className="max-w-md mx-auto space-y-2">
+                    <Progress value={progress} className="h-3 bg-secondary" />
+                    <p className="text-sm font-bold text-primary">{progress}% Complete</p>
+                  </div>
+                </motion.div>
+              )}
+            </motion.div>
+          ) : (
+            <motion.div
+              key="result"
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="p-12 rounded-2xl bg-card border border-primary/30 text-center space-y-8 relative overflow-hidden"
+            >
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-1 bg-primary" />
               
-              <div className="flex gap-3">
+              <div className="w-24 h-24 rounded-full bg-green-500/10 flex items-center justify-center mx-auto">
+                <CheckCircle2 className="w-12 h-12 text-green-500" />
+              </div>
+
+              <div className="space-y-2">
+                <h2 className="text-4xl font-black">Merge Complete!</h2>
+                <p className="text-muted-foreground text-lg">
+                  {files.length} files have been successfully combined.
+                </p>
+              </div>
+
+              <div className="flex flex-col sm:flex-row justify-center gap-4 pt-4">
                 <Button
-                  className="flex-1 gradient-primary border-0"
+                  size="lg"
                   onClick={handleDownload}
+                  className="h-14 px-10 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
                 >
-                  <Download className="w-4 h-4 mr-2" />
-                  Download Merged PDF
+                  Download Merged PDF <Download className="ml-2 w-5 h-5" />
                 </Button>
                 <Button
+                  size="lg"
                   variant="outline"
-                  className="bg-transparent"
                   onClick={handleReset}
+                  className="h-14 px-10 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors"
                 >
-                  Merge More
+                  Merge Another <RefreshCw className="ml-2 w-5 h-5" />
                 </Button>
               </div>
-            </CardContent>
-          </Card>
-        )}
-
-        {/* Action Button */}
-        {files.length >= 2 && !result && !isProcessing && (
-          <Button
-            size="lg"
-            className="w-full gradient-primary border-0 h-14 text-lg"
-            onClick={handleMerge}
-          >
-            <Merge className="w-5 h-5 mr-2" />
-            Merge {files.length} PDFs
-          </Button>
-        )}
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
     </ToolLayout>
   );
