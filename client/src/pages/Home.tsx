@@ -138,12 +138,12 @@ export default function Home() {
                   window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
                 }
               }}
-              className="h-14 px-8 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
+              className="h-14 px-8 text-lg font-black rounded-xl gradient-primary border-0 text-black click-animation smooth-hover"
             >
               Get Started <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
             <a href="https://github.com/Asinhaaa/FheDF" target="_blank" rel="noopener noreferrer">
-              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 click-animation smooth-hover">
                 View on GitHub
               </Button>
             </a>
@@ -169,7 +169,7 @@ export default function Home() {
           {tools.map((tool) => (
             <motion.div key={tool.id} variants={item}>
               <Link href={tool.href}>
-                <div className="group relative h-full p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer overflow-hidden">
+                <div className="group relative h-full p-8 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all duration-300 cursor-pointer overflow-hidden click-animation smooth-hover">
                   {/* Hover Background */}
                   <div className="absolute inset-0 bg-primary/5 opacity-0 group-hover:opacity-100 transition-opacity" />
                   
