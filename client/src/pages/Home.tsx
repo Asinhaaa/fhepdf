@@ -11,7 +11,10 @@ import {
   ArrowRight,
   Zap,
   Shield,
-  Key
+  Key,
+  Twitter,
+  Github,
+  FileText
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -122,18 +125,34 @@ export default function Home() {
             transition={{ delay: 0.3, duration: 0.5 }}
             className="flex flex-wrap justify-center gap-4"
           >
-            <Button size="lg" className="h-14 px-8 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform">
+            <Button 
+              size="lg" 
+              onClick={() => {
+                const element = document.getElementById('tools-section');
+                if (element) {
+                  const offset = 80;
+                  const bodyRect = document.body.getBoundingClientRect().top;
+                  const elementRect = element.getBoundingClientRect().top;
+                  const elementPosition = elementRect - bodyRect;
+                  const offsetPosition = elementPosition - offset;
+                  window.scrollTo({ top: offsetPosition, behavior: 'smooth' });
+                }
+              }}
+              className="h-14 px-8 text-lg font-black rounded-xl gradient-primary border-0 text-black hover:scale-105 transition-transform"
+            >
               Get Started <ArrowRight className="ml-2 w-5 h-5" />
             </Button>
-            <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors">
-              View on GitHub
-            </Button>
+            <a href="https://github.com/Asinhaaa/FheDF" target="_blank" rel="noopener noreferrer">
+              <Button size="lg" variant="outline" className="h-14 px-8 text-lg font-black rounded-xl border-2 border-white/10 hover:bg-white/5 transition-colors">
+                View on GitHub
+              </Button>
+            </a>
           </motion.div>
         </div>
       </header>
 
       {/* Tools Grid */}
-      <section className="container py-20">
+      <section id="tools-section" className="container py-20">
         <div className="flex items-center justify-between mb-12">
           <h2 className="text-3xl font-black tracking-tight">POWERFUL TOOLS</h2>
           <div className="h-px flex-1 bg-border mx-8 hidden md:block" />
@@ -228,15 +247,24 @@ export default function Home() {
             <span className="font-black tracking-tighter text-2xl">FheDF</span>
           </div>
           
-          <div className="flex gap-8 text-sm font-bold text-muted-foreground">
-            <a href="#" className="hover:text-primary transition-colors">Privacy Policy</a>
-            <a href="#" className="hover:text-primary transition-colors">Terms of Service</a>
-            <a href="#" className="hover:text-primary transition-colors">GitHub</a>
+          <div className="flex flex-col items-center md:items-end gap-4">
+            <div className="flex gap-6">
+              <a href="https://twitter.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Twitter className="w-5 h-5" />
+              </a>
+              <a href="https://github.com/Asinhaaa" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+                <Github className="w-5 h-5" />
+              </a>
+            </div>
+            <div className="text-right">
+              <p className="text-sm font-black tracking-widest uppercase">
+                Made by <a href="https://twitter.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@ramx_ai</a>
+              </p>
+              <p className="text-xs text-muted-foreground font-medium">
+                © 2025 FheDF. Built for the private web.
+              </p>
+            </div>
           </div>
-          
-          <p className="text-sm text-muted-foreground font-medium">
-            © 2025 FheDF. Built for the private web.
-          </p>
         </div>
       </footer>
     </div>

@@ -6,7 +6,9 @@ import {
   ShieldCheck, 
   Lock,
   Menu,
-  X
+  X,
+  Twitter,
+  Github
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -118,9 +120,24 @@ export function ToolLayout({ children, title, description, isFhe, badge }: ToolL
       </main>
 
       {/* Footer */}
-      <footer className="py-8 border-t border-border mt-20">
-        <div className="container text-center text-sm text-muted-foreground">
-          <p>© 2025 FheDF. All processing happens locally in your browser.</p>
+      <footer className="py-12 border-t border-border mt-20">
+        <div className="container flex flex-col items-center gap-6">
+          <div className="flex items-center gap-6">
+            <a href="https://twitter.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <Twitter className="w-5 h-5" />
+            </a>
+            <a href="https://github.com/Asinhaaa" target="_blank" rel="noopener noreferrer" className="text-muted-foreground hover:text-primary transition-colors">
+              <Github className="w-5 h-5" />
+            </a>
+          </div>
+          <div className="text-center">
+            <p className="text-sm font-black tracking-widest uppercase mb-2">
+              Made by <a href="https://twitter.com/ramx_ai" target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">@ramx_ai</a>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              © 2025 FheDF. All processing happens locally in your browser.
+            </p>
+          </div>
         </div>
       </footer>
     </div>
