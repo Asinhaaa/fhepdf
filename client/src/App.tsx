@@ -5,6 +5,7 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useCustomCursor } from "./hooks/useCustomCursor";
+import { WalletProvider } from "./components/WalletProvider";
 import "./styles/cursor.css";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
@@ -14,7 +15,7 @@ import CompressPdf from "./pages/tools/CompressPdf";
 import ConvertPdf from "./pages/tools/ConvertPdf";
 
 import PdfToDocx from "./pages/tools/PdfToDocx";
-import FhePlayground from "./pages/FhePlayground";
+import FhePlaygroundV3 from "./pages/FhePlaygroundV3";
 import ZamaShowcase from "./pages/ZamaShowcase";
 import Documentation from "./pages/Documentation";
 
@@ -33,7 +34,7 @@ function Router() {
       <Route path="/tools/compress" component={CompressPdf} />
       <Route path="/tools/convert" component={ConvertPdf} />
       <Route path="/tools/pdf-to-docx" component={PdfToDocx} />
-      <Route path="/fhe-playground" component={FhePlayground} />
+      <Route path="/fhe-playground" component={FhePlaygroundV3} />
       <Route path="/zama-showcase" component={ZamaShowcase} />
       <Route path="/docs" component={Documentation} />
       <Route path="/404" component={NotFound} />
@@ -45,12 +46,14 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <ThemeProvider defaultTheme="dark">
-        <TooltipProvider>
-          <Toaster />
-          <AppContent />
-        </TooltipProvider>
-      </ThemeProvider>
+      <WalletProvider>
+        <ThemeProvider defaultTheme="dark">
+          <TooltipProvider>
+            <Toaster />
+            <AppContent />
+          </TooltipProvider>
+        </ThemeProvider>
+      </WalletProvider>
     </ErrorBoundary>
   );
 }
