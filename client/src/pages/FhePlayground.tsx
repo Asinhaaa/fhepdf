@@ -12,6 +12,7 @@ import {
   ArrowRight,
   Code,
   Sparkles,
+  RefreshCw,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -44,23 +45,28 @@ export default function FhePlayground() {
   const [encrypted2, setEncrypted2] = useState<EncryptedValue | null>(null);
   const [operation, setOperation] = useState<"add" | "multiply">("add");
   const [result, setResult] = useState<{ value: number; encrypted: string } | null>(null);
-  const [showExplanation, setShowExplanation] = useState(false);
   const [activeTab, setActiveTab] = useState<"demo" | "how-it-works" | "use-cases">("demo");
+  const [isProcessing, setIsProcessing] = useState(false);
 
-  // Simulate FHE encryption (visual representation)
+  // Simulate FHE encryption using a deterministic hash function
   const simulateEncryption = (value: number): string => {
-    const seed = value * 12345;
-    const hash = Math.abs(Math.sin(seed) * 10000).toString(16).substring(0, 16);
-    return `0x${hash.padEnd(16, "0")}`;
+    const seed = value * 12345 + 67890;
+    let hash = Math.abs(Math.sin(seed) * 10000).toString(16);
+    hash = hash.padEnd(16, "0").substring(0, 16);
+    return `0x${hash}`;
   };
 
   const handleEncrypt = useCallback((num: number, setEncrypted: any) => {
-    const encrypted = simulateEncryption(num);
-    setEncrypted({
-      original: num,
-      encrypted: encrypted,
-      isHidden: true,
-    });
+    setIsProcessing(true);
+    setTimeout(() => {
+      const encrypted = simulateEncryption(num);
+      setEncrypted({
+        original: num,
+        encrypted: encrypted,
+        isHidden: true,
+      });
+      setIsProcessing(false);
+    }, 500);
   }, []);
 
   const handleDecrypt = useCallback((encrypted: EncryptedValue) => {
@@ -73,25 +79,30 @@ export default function FhePlayground() {
   const handleCompute = useCallback(() => {
     if (!encrypted1 || !encrypted2) return;
 
-    let resultValue: number;
-    if (operation === "add") {
-      resultValue = encrypted1.original + encrypted2.original;
-    } else {
-      resultValue = encrypted1.original * encrypted2.original;
-    }
+    setIsProcessing(true);
+    setTimeout(() => {
+      let resultValue: number;
+      if (operation === "add") {
+        resultValue = encrypted1.original + encrypted2.original;
+      } else {
+        resultValue = encrypted1.original * encrypted2.original;
+      }
 
-    const resultEncrypted = simulateEncryption(resultValue);
-    setResult({
-      value: resultValue,
-      encrypted: resultEncrypted,
-    });
+      const resultEncrypted = simulateEncryption(resultValue);
+      setResult({
+        value: resultValue,
+        encrypted: resultEncrypted,
+      });
+      setIsProcessing(false);
+    }, 800);
   }, [encrypted1, encrypted2, operation]);
 
   const handleReset = useCallback(() => {
     setEncrypted1(null);
     setEncrypted2(null);
     setResult(null);
-    setShowExplanation(false);
+    setNum1(5);
+    setNum2(3);
   }, []);
 
   return (
@@ -126,7 +137,7 @@ export default function FhePlayground() {
 
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-black tracking-tighter">
               COMPUTE ON <br />
-              <span className="text-primary gradient-text-animated">ENCRYPTED DATA</span>
+              <span className="text-primary">ENCRYPTED DATA</span>
             </h1>
 
             <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto font-medium">
@@ -142,13 +153,13 @@ export default function FhePlayground() {
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex gap-4 mb-12 border-b border-border"
+          className="flex gap-4 mb-12 border-b border-border overflow-x-auto"
         >
           {["demo", "how-it-works", "use-cases"].map((tab) => (
             <button
               key={tab}
               onClick={() => setActiveTab(tab as any)}
-              className={`px-4 py-3 font-black text-sm md:text-base tracking-widest uppercase transition-all border-b-2 ${
+              className={`px-4 py-3 font-black text-sm md:text-base tracking-widest uppercase transition-all border-b-2 whitespace-nowrap ${
                 activeTab === tab
                   ? "border-primary text-primary"
                   : "border-transparent text-muted-foreground hover:text-foreground"
@@ -192,10 +203,12 @@ export default function FhePlayground() {
                         className="h-12 text-lg font-bold"
                         min="0"
                         max="100"
+                        disabled={isProcessing}
                       />
                       <Button
                         onClick={() => handleEncrypt(num1, setEncrypted1)}
-                        className="h-12 px-6 gradient-primary text-black font-black rounded-xl"
+                        disabled={isProcessing}
+                        className="h-12 px-6 gradient-primary text-black font-black rounded-xl hover:scale-105 transition-transform"
                       >
                         <Lock className="w-4 h-4 mr-2" />
                         Encrypt
@@ -247,10 +260,12 @@ export default function FhePlayground() {
                         className="h-12 text-lg font-bold"
                         min="0"
                         max="100"
+                        disabled={isProcessing}
                       />
                       <Button
                         onClick={() => handleEncrypt(num2, setEncrypted2)}
-                        className="h-12 px-6 gradient-primary text-black font-black rounded-xl"
+                        disabled={isProcessing}
+                        className="h-12 px-6 gradient-primary text-black font-black rounded-xl hover:scale-105 transition-transform"
                       >
                         <Lock className="w-4 h-4 mr-2" />
                         Encrypt
@@ -303,6 +318,7 @@ export default function FhePlayground() {
                     <div className="flex gap-4">
                       <button
                         onClick={() => setOperation("add")}
+                        disabled={isProcessing}
                         className={`flex-1 p-4 rounded-xl font-black transition-all ${
                           operation === "add"
                             ? "bg-primary text-black border-2 border-primary"
@@ -314,6 +330,7 @@ export default function FhePlayground() {
                       </button>
                       <button
                         onClick={() => setOperation("multiply")}
+                        disabled={isProcessing}
                         className={`flex-1 p-4 rounded-xl font-black transition-all ${
                           operation === "multiply"
                             ? "bg-primary text-black border-2 border-primary"
@@ -328,10 +345,25 @@ export default function FhePlayground() {
 
                   <Button
                     onClick={handleCompute}
-                    className="w-full h-14 gradient-primary text-black font-black text-lg rounded-xl"
+                    disabled={isProcessing}
+                    className="w-full h-14 gradient-primary text-black font-black text-lg rounded-xl hover:scale-105 transition-transform disabled:opacity-50"
                   >
-                    <Zap className="w-5 h-5 mr-2" />
-                    Compute on Encrypted Data
+                    {isProcessing ? (
+                      <>
+                        <motion.div
+                          animate={{ rotate: 360 }}
+                          transition={{ duration: 1, repeat: Infinity }}
+                        >
+                          <Zap className="w-5 h-5 mr-2" />
+                        </motion.div>
+                        Computing...
+                      </>
+                    ) : (
+                      <>
+                        <Zap className="w-5 h-5 mr-2" />
+                        Compute on Encrypted Data
+                      </>
+                    )}
                   </Button>
                 </motion.div>
               )}
@@ -431,7 +463,7 @@ export default function FhePlayground() {
                     description: "The server never sees your original data. Perfect for cloud computing and sensitive applications.",
                     icon: Shield,
                   },
-                ].map((item, idx) => (
+                ].map((itemData, idx) => (
                   <motion.div
                     key={idx}
                     variants={item}
@@ -439,14 +471,14 @@ export default function FhePlayground() {
                   >
                     <div className="flex gap-4">
                       <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
-                        <item.icon className="w-6 h-6 text-primary" />
+                        <itemData.icon className="w-6 h-6 text-primary" />
                       </div>
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <span className="text-sm font-black text-primary">Step {item.step}</span>
-                          <h3 className="text-lg font-black">{item.title}</h3>
+                          <span className="text-sm font-black text-primary">Step {itemData.step}</span>
+                          <h3 className="text-lg font-black">{itemData.title}</h3>
                         </div>
-                        <p className="text-muted-foreground">{item.description}</p>
+                        <p className="text-muted-foreground">{itemData.description}</p>
                       </div>
                     </div>
                   </motion.div>
@@ -466,11 +498,7 @@ export default function FhePlayground() {
                       FheDF uses the SEAL library (Microsoft) and node-seal bindings for WebAssembly-based FHE operations. This enables privacy-preserving computations directly in your browser.
                     </p>
                     <code className="block text-xs font-mono bg-black/20 p-3 rounded text-primary overflow-x-auto">
-                      {`// Example: Homomorphic Addition
-const encrypted_a = encrypt(5);
-const encrypted_b = encrypt(3);
-const encrypted_sum = add(encrypted_a, encrypted_b);
-const result = decrypt(encrypted_sum); // 8`}
+                      {`// Example: Homomorphic Addition\nconst encrypted_a = encrypt(5);\nconst encrypted_b = encrypt(3);\nconst encrypted_sum = add(encrypted_a, encrypted_b);\nconst result = decrypt(encrypted_sum); // 8`}
                     </code>
                   </div>
                 </div>
