@@ -53,6 +53,16 @@ export default function ConvertPdf() {
       setPreviews(previewUrls);
       
       toast.success(`Converted ${images.length} page${images.length !== 1 ? "s" : ""} to ${format.toUpperCase()}!`);
+      
+      // Automatically trigger download
+      if (images.length === 1) {
+        downloadFile(images[0].data, images[0].name);
+      } else {
+        await downloadAsZip(
+          images.map(r => ({ name: r.name, data: r.data })),
+          `${file.name.replace(".pdf", "")}_images.zip`
+        );
+      }
     } catch (error) {
       console.error("Conversion error:", error);
       toast.error("Failed to convert PDF. Please try again.");

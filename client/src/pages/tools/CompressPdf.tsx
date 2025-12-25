@@ -62,13 +62,23 @@ export default function CompressPdf() {
 
     try {
       const compressed = await compressPdf(file, quality, setProgress);
+      
+      // Check if compression actually happened
+      if (compressed.length >= file.size && quality !== "high") {
+        toast.info("This PDF is already highly optimized.");
+      }
+
       setResult({
         data: compressed,
         originalSize: file.size,
       });
       
-      const reduction = ((file.size - compressed.length) / file.size * 100).toFixed(1);
+      const reduction = Math.max(0, ((file.size - compressed.length) / file.size * 100)).toFixed(1);
       toast.success(`PDF compressed! Reduced by ${reduction}%`);
+      
+      // Automatically trigger download like pdf0.dev
+      const newName = file.name.replace(".pdf", "_compressed.pdf");
+      downloadFile(compressed, newName);
     } catch (error) {
       console.error("Compression error:", error);
       toast.error("Failed to compress PDF. Please try again.");

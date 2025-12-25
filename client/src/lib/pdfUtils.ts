@@ -114,41 +114,41 @@ export async function compressPdf(
   quality: "low" | "medium" | "high" = "medium",
   onProgress?: (progress: number) => void
 ): Promise<Uint8Array> {
-  const fileData = await loadPdfFile(file);
-  
-  if (onProgress) onProgress(20);
-  
-  // Load the PDF
-  const pdf = await PDFDocument.load(fileData, {
-    ignoreEncryption: true,
-  });
-  
-  if (onProgress) onProgress(40);
-  
-  // Remove metadata
-  pdf.setTitle("");
-  pdf.setAuthor("");
-  pdf.setSubject("");
-  pdf.setKeywords([]);
-  pdf.setProducer("");
-  pdf.setCreator("");
-  
-  if (onProgress) onProgress(60);
+  try {
+    const fileData = await loadPdfFile(file);
+    if (onProgress) onProgress(10);
+    
+    const pdf = await PDFDocument.load(fileData, { 
+      ignoreEncryption: true,
+      throwOnInvalidObject: false 
+    });
+    if (onProgress) onProgress(30);
+    
+    // Remove metadata for all levels
+    pdf.setTitle("");
+    pdf.setAuthor("");
+    pdf.setSubject("");
+    pdf.setKeywords([]);
+    pdf.setProducer("");
+    pdf.setCreator("");
+    
+    if (onProgress) onProgress(50);
 
-  // For "low" quality (maximum compression), we can try to remove more things
-  // like annotations or form fields if they exist, but for now we'll stick to 
-  // the standard optimization provided by pdf-lib.
-  
-  // Save with optimization
-  const pdfBytes = await pdf.save({
-    useObjectStreams: true, // This is key for compression
-    addDefaultPage: false,
-    updateFieldAppearances: false,
-  });
-  
-  if (onProgress) onProgress(100);
-  
-  return pdfBytes;
+    // Save with optimization
+    // quality: low -> max compression, high -> min compression
+    const pdfBytes = await pdf.save({
+      useObjectStreams: quality !== "high",
+      addDefaultPage: false,
+      updateFieldAppearances: false,
+      objectsPerTick: 50,
+    });
+    
+    if (onProgress) onProgress(100);
+    return pdfBytes;
+  } catch (error) {
+    console.error("Compression error:", error);
+    throw error;
+  }
 }
 
 // Convert PDF pages to images
@@ -226,10 +226,9 @@ export async function extractTextFromPdf(
   return textPages;
 }
 
-// Download a single file
+// Download a single file (Fail-safe implementation)
 export function downloadFile(data: Uint8Array | Blob, filename: string) {
   try {
-    // Determine the correct MIME type based on the filename extension
     let type = "application/octet-stream";
     if (filename.endsWith(".pdf")) type = "application/pdf";
     else if (filename.endsWith(".zip")) type = "application/zip";
@@ -239,26 +238,47 @@ export function downloadFile(data: Uint8Array | Blob, filename: string) {
     const blob = data instanceof Blob ? data : new Blob([data], { type });
     const url = window.URL.createObjectURL(blob);
     
-    // Create a temporary link element
+    // Method 1: Standard Link Click
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
-    
-    // This is necessary for some browsers
     link.style.display = "none";
+    link.style.visibility = "hidden";
     document.body.appendChild(link);
-    
-    // Trigger the download
     link.click();
     
+    // Method 2: Fallback for some mobile browsers / strict CSP
+    setTimeout(() => {
+      if (document.body.contains(link)) {
+        // If the link is still there, try one more time or use window.location
+        try {
+          link.click();
+        } catch (e) {
+          window.location.href = url;
+        }
+      }
+    }, 100);
+
     // Cleanup
     setTimeout(() => {
-      document.body.removeChild(link);
+      if (document.body.contains(link)) {
+        document.body.removeChild(link);
+      }
       window.URL.revokeObjectURL(url);
-    }, 500); // Increased timeout for better reliability
+    }, 1000);
+    
+    return true;
   } catch (error) {
     console.error("Download error:", error);
-    toast.error("Failed to download file. Please try again.");
+    // Method 3: Last resort - open in new tab
+    try {
+      const blob = data instanceof Blob ? data : new Blob([data]);
+      const url = window.URL.createObjectURL(blob);
+      window.open(url, "_blank");
+    } catch (e) {
+      toast.error("Download failed. Please check your browser settings.");
+    }
+    return false;
   }
 }
 

@@ -37,6 +37,9 @@ export default function MergePdf() {
       const mergedPdf = await mergePdfs(files, setProgress);
       setResult(mergedPdf);
       toast.success("PDFs merged successfully!");
+      
+      // Automatically trigger download
+      downloadFile(mergedPdf, "merged.pdf");
     } catch (error) {
       console.error("Merge error:", error);
       toast.error("Failed to merge PDFs. Please try again.");

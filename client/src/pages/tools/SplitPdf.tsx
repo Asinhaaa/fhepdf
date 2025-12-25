@@ -93,6 +93,13 @@ export default function SplitPdf() {
       
       setResults(splitResults);
       toast.success(`PDF split into ${splitResults.length} file${splitResults.length !== 1 ? "s" : ""}!`);
+      
+      // Automatically trigger download
+      if (splitResults.length === 1) {
+        downloadFile(splitResults[0].data, splitResults[0].name);
+      } else {
+        await downloadAsZip(splitResults, `${file.name.replace(".pdf", "")}_split.zip`);
+      }
     } catch (error) {
       console.error("Split error:", error);
       toast.error("Failed to split PDF. Please try again.");
