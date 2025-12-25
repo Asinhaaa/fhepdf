@@ -63,20 +63,20 @@ export default function ConvertPdf() {
 
   const handleDownloadAll = async () => {
     if (results && results.length > 0) {
-      if (results.length === 1) {
-        const url = URL.createObjectURL(results[0].data);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = results[0].name;
-        a.click();
-        URL.revokeObjectURL(url);
-      } else {
-        await downloadAsZip(
-          results.map(r => ({ name: r.name, data: r.data })),
-          `${file?.name.replace(".pdf", "")}_images.zip`
-        );
+      try {
+        if (results.length === 1) {
+          downloadFile(results[0].data, results[0].name);
+        } else {
+          await downloadAsZip(
+            results.map(r => ({ name: r.name, data: r.data })),
+            `${file?.name.replace(".pdf", "")}_images.zip`
+          );
+        }
+        toast.success("Download started!");
+      } catch (error) {
+        console.error("Download error:", error);
+        toast.error("Failed to download files.");
       }
-      toast.success("Download started!");
     }
   };
 

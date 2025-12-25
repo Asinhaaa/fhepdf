@@ -1,5 +1,6 @@
 import { PDFDocument } from "pdf-lib";
 import JSZip from "jszip";
+import { toast } from "sonner";
 
 // Initialize PDF.js worker
 export async function initPdfJs() {
@@ -228,20 +229,36 @@ export async function extractTextFromPdf(
 // Download a single file
 export function downloadFile(data: Uint8Array | Blob, filename: string) {
   try {
-    const blob = data instanceof Blob ? data : new Blob([data], { type: "application/pdf" });
-    const url = URL.createObjectURL(blob);
+    // Determine the correct MIME type based on the filename extension
+    let type = "application/octet-stream";
+    if (filename.endsWith(".pdf")) type = "application/pdf";
+    else if (filename.endsWith(".zip")) type = "application/zip";
+    else if (filename.endsWith(".png")) type = "image/png";
+    else if (filename.endsWith(".jpeg") || filename.endsWith(".jpg")) type = "image/jpeg";
+
+    const blob = data instanceof Blob ? data : new Blob([data], { type });
+    const url = window.URL.createObjectURL(blob);
+    
+    // Create a temporary link element
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
     
-    // Revoke the URL after a short delay to ensure the download starts
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    // This is necessary for some browsers
+    link.style.display = "none";
+    document.body.appendChild(link);
+    
+    // Trigger the download
+    link.click();
+    
+    // Cleanup
+    setTimeout(() => {
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+    }, 500); // Increased timeout for better reliability
   } catch (error) {
     console.error("Download error:", error);
-    throw new Error("Failed to download file");
+    toast.error("Failed to download file. Please try again.");
   }
 }
 

@@ -103,12 +103,17 @@ export default function SplitPdf() {
 
   const handleDownloadAll = async () => {
     if (results && results.length > 0) {
-      if (results.length === 1) {
-        downloadFile(results[0].data, results[0].name);
-      } else {
-        await downloadAsZip(results, `${file?.name.replace(".pdf", "")}_split.zip`);
+      try {
+        if (results.length === 1) {
+          downloadFile(results[0].data, results[0].name);
+        } else {
+          await downloadAsZip(results, `${file?.name.replace(".pdf", "")}_split.zip`);
+        }
+        toast.success("Download started!");
+      } catch (error) {
+        console.error("Download error:", error);
+        toast.error("Failed to download files.");
       }
-      toast.success("Download started!");
     }
   };
 
