@@ -107,7 +107,7 @@ export async function getPdfPageCount(file: File): Promise<number> {
   return pdf.getPageCount();
 }
 
-// Compress PDF (basic compression by removing metadata and optimizing)
+// Compress PDF (improved compression by removing metadata and using object streams)
 export async function compressPdf(
   file: File,
   quality: "low" | "medium" | "high" = "medium",
@@ -115,14 +115,16 @@ export async function compressPdf(
 ): Promise<Uint8Array> {
   const fileData = await loadPdfFile(file);
   
-  if (onProgress) onProgress(30);
+  if (onProgress) onProgress(20);
   
+  // Load the PDF
   const pdf = await PDFDocument.load(fileData, {
     ignoreEncryption: true,
   });
   
-  if (onProgress) onProgress(60);
+  if (onProgress) onProgress(40);
   
+  // Remove metadata
   pdf.setTitle("");
   pdf.setAuthor("");
   pdf.setSubject("");
@@ -130,11 +132,17 @@ export async function compressPdf(
   pdf.setProducer("");
   pdf.setCreator("");
   
-  if (onProgress) onProgress(80);
+  if (onProgress) onProgress(60);
+
+  // For "low" quality (maximum compression), we can try to remove more things
+  // like annotations or form fields if they exist, but for now we'll stick to 
+  // the standard optimization provided by pdf-lib.
   
+  // Save with optimization
   const pdfBytes = await pdf.save({
-    useObjectStreams: quality !== "high",
+    useObjectStreams: true, // This is key for compression
     addDefaultPage: false,
+    updateFieldAppearances: false,
   });
   
   if (onProgress) onProgress(100);
@@ -217,84 +225,20 @@ export async function extractTextFromPdf(
   return textPages;
 }
 
-// Download a single file with visible link
+// Download a single file
 export function downloadFile(data: Uint8Array | Blob, filename: string) {
   try {
-    const blob = data instanceof Blob ? data : new Blob([data as BlobPart], { type: "application/pdf" });
+    const blob = data instanceof Blob ? data : new Blob([data], { type: "application/pdf" });
     const url = URL.createObjectURL(blob);
-    
-    // Create visible download notification
-    const container = document.createElement("div");
-    container.style.position = "fixed";
-    container.style.bottom = "20px";
-    container.style.right = "20px";
-    container.style.zIndex = "9999";
-    container.style.backgroundColor = "#10b981";
-    container.style.padding = "20px";
-    container.style.borderRadius = "8px";
-    container.style.boxShadow = "0 4px 12px rgba(0,0,0,0.3)";
-    container.style.maxWidth = "300px";
-    
-    const title = document.createElement("div");
-    title.textContent = "Your file is ready!";
-    title.style.color = "white";
-    title.style.fontWeight = "bold";
-    title.style.marginBottom = "10px";
-    title.style.fontSize = "14px";
-    container.appendChild(title);
-    
     const link = document.createElement("a");
     link.href = url;
     link.download = filename;
-    link.textContent = "Download " + filename;
-    link.style.display = "inline-block";
-    link.style.color = "white";
-    link.style.backgroundColor = "#059669";
-    link.style.padding = "10px 15px";
-    link.style.borderRadius = "5px";
-    link.style.textDecoration = "none";
-    link.style.fontWeight = "bold";
-    link.style.cursor = "pointer";
-    link.style.marginRight = "10px";
-    container.appendChild(link);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
     
-    const closeBtn = document.createElement("button");
-    closeBtn.textContent = "X";
-    closeBtn.style.backgroundColor = "transparent";
-    closeBtn.style.color = "white";
-    closeBtn.style.border = "none";
-    closeBtn.style.fontSize = "18px";
-    closeBtn.style.cursor = "pointer";
-    closeBtn.style.float = "right";
-    closeBtn.onclick = () => {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-      URL.revokeObjectURL(url);
-    };
-    container.appendChild(closeBtn);
-    
-    document.body.appendChild(container);
-    
-    // Try standard download
-    const hiddenLink = document.createElement("a");
-    hiddenLink.href = url;
-    hiddenLink.download = filename;
-    hiddenLink.style.display = "none";
-    document.body.appendChild(hiddenLink);
-    hiddenLink.click();
-    
-    // Cleanup after 30 seconds
-    setTimeout(() => {
-      if (document.body.contains(container)) {
-        document.body.removeChild(container);
-      }
-      if (document.body.contains(hiddenLink)) {
-        document.body.removeChild(hiddenLink);
-      }
-      URL.revokeObjectURL(url);
-    }, 30000);
-    
+    // Revoke the URL after a short delay to ensure the download starts
+    setTimeout(() => URL.revokeObjectURL(url), 100);
   } catch (error) {
     console.error("Download error:", error);
     throw new Error("Failed to download file");
