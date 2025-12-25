@@ -14,6 +14,8 @@ import CompressPdf from "./pages/tools/CompressPdf";
 import ConvertPdf from "./pages/tools/ConvertPdf";
 
 import PdfToDocx from "./pages/tools/PdfToDocx";
+import FhePlayground from "./pages/FhePlayground";
+import ZamaShowcase from "./pages/ZamaShowcase";
 import Documentation from "./pages/Documentation";
 
 function AppContent() {
@@ -31,6 +33,8 @@ function Router() {
       <Route path="/tools/compress" component={CompressPdf} />
       <Route path="/tools/convert" component={ConvertPdf} />
       <Route path="/tools/pdf-to-docx" component={PdfToDocx} />
+      <Route path="/fhe-playground" component={FhePlayground} />
+      <Route path="/zama-showcase" component={ZamaShowcase} />
       <Route path="/docs" component={Documentation} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
