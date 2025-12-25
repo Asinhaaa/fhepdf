@@ -10,7 +10,8 @@ import MergePdf from "./pages/tools/MergePdf";
 import SplitPdf from "./pages/tools/SplitPdf";
 import CompressPdf from "./pages/tools/CompressPdf";
 import ConvertPdf from "./pages/tools/ConvertPdf";
-import EncryptedSearch from "./pages/tools/EncryptedSearchEnhanced";
+import EncryptedSearch from "./pages/tools/EncryptedSearchV2";
+import PdfToDocx from "./pages/tools/PdfToDocx";
 import Documentation from "./pages/Documentation";
 
 function Router() {
@@ -23,6 +24,7 @@ function Router() {
       <Route path="/tools/compress" component={CompressPdf} />
       <Route path="/tools/convert" component={ConvertPdf} />
       <Route path="/tools/encrypted-search" component={EncryptedSearch} />
+      <Route path="/tools/pdf-to-docx" component={PdfToDocx} />
       <Route path="/docs" component={Documentation} />
       <Route path="/404" component={NotFound} />
       <Route component={NotFound} />
