@@ -10,7 +10,7 @@ import MergePdf from "./pages/tools/MergePdf";
 import SplitPdf from "./pages/tools/SplitPdf";
 import CompressPdf from "./pages/tools/CompressPdf";
 import ConvertPdf from "./pages/tools/ConvertPdf";
-import EncryptedSearch from "./pages/tools/EncryptedSearch";
+import EncryptedSearch from "./pages/tools/EncryptedSearchEnhanced";
 import Documentation from "./pages/Documentation";
 
 function Router() {
