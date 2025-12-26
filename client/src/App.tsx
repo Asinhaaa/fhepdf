@@ -5,7 +5,6 @@ import { Route, Switch } from "wouter";
 import ErrorBoundary from "./components/ErrorBoundary";
 import { ThemeProvider } from "./contexts/ThemeContext";
 import { useCustomCursor } from "./hooks/useCustomCursor";
-import { WalletProvider } from "./components/WalletProvider";
 import "./styles/cursor.css";
 import Home from "./pages/Home";
 import Dashboard from "./pages/Dashboard";
@@ -46,14 +45,12 @@ function Router() {
 function App() {
   return (
     <ErrorBoundary>
-      <WalletProvider>
-        <ThemeProvider defaultTheme="dark">
-          <TooltipProvider>
-            <Toaster />
-            <AppContent />
-          </TooltipProvider>
-        </ThemeProvider>
-      </WalletProvider>
+      <ThemeProvider defaultTheme="dark">
+        <TooltipProvider>
+          <Toaster />
+          <AppContent />
+        </TooltipProvider>
+      </ThemeProvider>
     </ErrorBoundary>
   );
 }
