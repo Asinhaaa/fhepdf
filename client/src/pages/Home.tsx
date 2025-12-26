@@ -15,8 +15,7 @@ import {
   Twitter,
   Github,
   FileText,
-  Sparkles,
-  Unlock
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -303,60 +302,6 @@ export default function Home() {
               <p className="text-base md:text-lg text-muted-foreground font-medium">
                 Search through encrypted documents without ever revealing the content or your search query.
               </p>
-            </motion.div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* FHE Playground Showcase */}
-      <section className="bg-secondary/30 py-20 md:py-32 border-y border-border">
-        <div className="container px-4">
-          <motion.div 
-            className="space-y-8 md:space-y-12"
-            initial="hidden"
-            whileInView="show"
-            viewport={{ once: true }}
-            variants={container}
-          >
-            <motion.div className="text-center space-y-4" variants={item}>
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 border border-primary/20">
-                <Sparkles className="w-4 h-4 text-primary" />
-                <span className="text-xs font-black tracking-widest uppercase">Interactive Demo</span>
-              </div>
-              <h2 className="text-3xl md:text-4xl lg:text-5xl font-black tracking-tight">SEE FHE IN ACTION</h2>
-              <p className="text-base md:text-lg text-muted-foreground max-w-2xl mx-auto">Experience homomorphic encryption firsthand. Encrypt numbers, perform calculations on encrypted data, and decrypt the results—all without exposing your data.</p>
-            </motion.div>
-
-            <motion.div variants={item} className="grid md:grid-cols-3 gap-6">
-              <div className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Lock className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-black mb-2">Encrypt Data</h4>
-                <p className="text-sm text-muted-foreground">Transform your numbers into encrypted values using FHE algorithms.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Zap className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-black mb-2">Compute</h4>
-                <p className="text-sm text-muted-foreground">Perform addition and multiplication directly on encrypted data.</p>
-              </div>
-              <div className="p-6 rounded-2xl bg-card border border-border hover:border-primary/50 transition-all">
-                <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-                  <Unlock className="w-6 h-6 text-primary" />
-                </div>
-                <h4 className="font-black mb-2">Decrypt Result</h4>
-                <p className="text-sm text-muted-foreground">Get the correct result without ever exposing intermediate values.</p>
-              </div>
-            </motion.div>
-
-            <motion.div variants={item}>
-              <a href="/fhe-playground">
-                <button className="w-full h-14 md:h-16 gradient-primary text-black font-black text-lg rounded-2xl hover:scale-105 transition-transform click-animation">
-                  Launch Interactive Playground <ArrowRight className="inline ml-2 w-5 h-5" />
-                </button>
-              </a>
             </motion.div>
           </motion.div>
         </div>

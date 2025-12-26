@@ -1,252 +1,144 @@
-# FheDF: Privacy-First PDF Toolkit Powered by Fully Homomorphic Encryption
+# FHEPdf - Privacy-Preserving PDF Toolkit
 
-![FheDF Banner](https://img.shields.io/badge/Privacy-First-yellow?style=for-the-badge) ![FHE Powered](https://img.shields.io/badge/FHE-Powered-black?style=for-the-badge) ![Zama Developer Program](https://img.shields.io/badge/Zama-Developer%20Program-yellow?style=for-the-badge)
+A privacy-focused PDF processing application with all PDF operations happening client-side in the browser, ensuring your files never leave your device.
 
-A **production-ready, privacy-first PDF toolkit** that demonstrates the practical power of Fully Homomorphic Encryption (FHE). Process, merge, split, compress, and convert PDF documents entirely on the client-side, without ever uploading data to servers or decrypting sensitive information.
+## Features
 
-## 🚀 Live Demo
+- **Merge PDFs** - Combine multiple PDF files into one
+- **Split PDF** - Extract pages or split into multiple files  
+- **Compress PDF** - Reduce file size with quality options
+- **Convert PDF** - Convert PDF pages to images (PNG/JPEG)
+- **FHE Encrypted Search** - Privacy-preserving text search using Fully Homomorphic Encryption
 
-- **Website**: [https://fhedf.vercel.app](https://fhedf.vercel.app)
-- **FHE Playground**: [https://fhedf.vercel.app/fhe-playground](https://fhedf.vercel.app/fhe-playground)
-- **Zama Showcase**: [https://fhedf.vercel.app/zama-showcase](https://fhedf.vercel.app/zama-showcase)
+## Tech Stack
 
-## ✨ Key Features
+- **Frontend**: React 19, TypeScript, Tailwind CSS 4, Framer Motion
+- **Backend**: Express, tRPC, Drizzle ORM
+- **PDF Processing**: pdf-lib, pdfjs-dist (client-side)
+- **FHE**: Zama Concrete (simulated for demo)
 
-### 📄 PDF Tools (100% Client-Side)
-- **Merge PDFs**: Combine multiple documents seamlessly
-- **Split PDFs**: Extract specific pages or ranges
-- **Compress PDFs**: Reduce file size while maintaining quality
-- **PDF to Image**: Convert pages to high-quality images (JPG/PNG)
-- **PDF to DOCX**: Convert PDFs to editable Word documents
-
-### 🔐 FHE-Powered Privacy
-- **Interactive Playground**: Encrypt numbers, perform homomorphic operations, decrypt results
-- **Zero-Knowledge**: No data leaves your device, no servers involved
-- **Mathematical Privacy**: FHE provides cryptographic guarantees
-- **Educational**: Learn how FHE works through interactive demos
-
-### 🎨 Professional UI/UX
-- **Zama-Inspired Design**: Yellow, Black, and White color scheme
-- **Responsive Layouts**: Perfect on mobile, tablet, and desktop
-- **60 FPS Animations**: Smooth Framer Motion effects
-- **Custom Cursor**: Interactive ripple effects and animations
-
-## 🏗️ Tech Stack
-
-| Layer | Technology | Purpose |
-|-------|-----------|---------|
-| **Frontend** | React 19 + TypeScript | Modern, type-safe UI |
-| **Styling** | Tailwind CSS + Framer Motion | Responsive design + animations |
-| **Build** | Vite | Fast, optimized builds |
-| **PDF Processing** | pdf-lib, pdfjs-dist | Client-side PDF manipulation |
-| **FHE** | node-seal (Microsoft SEAL) | WebAssembly-based FHE |
-| **Deployment** | Vercel | Optimized hosting |
-
-## 🎯 FHE Implementation
-
-FheDF demonstrates practical Fully Homomorphic Encryption:
-
-```typescript
-// Encrypt data in the browser
-const encrypted_a = encrypt(5);
-const encrypted_b = encrypt(3);
-
-// Perform operations on encrypted data
-const encrypted_sum = add(encrypted_a, encrypted_b);
-
-// Only you can decrypt the result
-const result = decrypt(encrypted_sum); // 8
-```
-
-### Why This Matters
-- **Privacy**: Server never sees plaintext data
-- **Utility**: Computations still produce correct results
-- **Security**: Mathematical guarantees of confidentiality
-- **Real-World**: Applicable to healthcare, finance, legal, and more
-
-## 🚀 Getting Started
+## Getting Started
 
 ### Prerequisites
-- Node.js 18+ (LTS recommended)
-- pnpm (package manager)
+
+- Node.js 18+
+- pnpm (recommended) or npm
 
 ### Installation
 
 ```bash
-# Clone the repository
-git clone https://github.com/Asinhaaa/FheDF.git
-cd FheDF
+# Clone or extract the project
+cd fhe-pdf-processor
 
 # Install dependencies
 pnpm install
 
-# Start development server
-pnpm run dev
+# Set up environment variables
+cp .env.example .env
+# Edit .env with your database URL and other configs
 
-# Open in browser
-# Navigate to http://localhost:5173
+# Push database schema
+pnpm db:push
+
+# Start development server
+pnpm dev
 ```
+
+The app will be available at `http://localhost:3000`
 
 ### Build for Production
 
 ```bash
-# Build optimized production bundle
-pnpm run build
-
-# Preview production build locally
-pnpm run preview
-
-# Deploy to Vercel (automatic from GitHub)
-git push origin main
+pnpm build
+pnpm start
 ```
 
-## 📊 Project Structure
+## Project Structure
 
 ```
-FheDF/
-├── client/
+fhe-pdf-processor/
+├── client/                 # Frontend React app
 │   ├── src/
-│   │   ├── pages/
-│   │   │   ├── Home.tsx                 # Landing page
-│   │   │   ├── FhePlayground.tsx        # Interactive FHE demo
-│   │   │   ├── ZamaShowcase.tsx         # Zama grant showcase
-│   │   │   └── tools/
-│   │   │       ├── MergePdf.tsx
-│   │   │       ├── SplitPdf.tsx
-│   │   │       ├── CompressPdf.tsx
-│   │   │       ├── ConvertPdf.tsx
-│   │   │       └── PdfToDocx.tsx
-│   │   ├── lib/
-│   │   │   ├── pdfUtils.ts              # PDF utilities
-│   │   │   ├── pdfToDocxConverter.ts    # DOCX conversion
-│   │   │   └── fheServiceEnhanced.ts    # FHE operations
-│   │   ├── styles/
-│   │   │   ├── index.css                # Global styles
-│   │   │   └── cursor.css               # Custom cursor
-│   │   └── App.tsx                      # Main app
-│   └── package.json
-├── vercel.json                          # Deployment config
-├── vite.config.ts                       # Build config
-└── README_ZAMA_SUBMISSION.md           # Detailed submission docs
+│   │   ├── components/     # Reusable UI components
+│   │   ├── pages/          # Page components
+│   │   │   └── tools/      # PDF tool pages
+│   │   ├── lib/            # Utilities (pdfUtils.ts)
+│   │   └── index.css       # Global styles & theme
+├── server/                 # Backend Express + tRPC
+│   ├── _core/              # Framework internals
+│   ├── routers.ts          # API routes
+│   └── db.ts               # Database queries
+├── drizzle/                # Database schema
+└── shared/                 # Shared types & constants
 ```
 
-## 🎮 Interactive Features
+## Key Files
 
-### FHE Playground (`/fhe-playground`)
-Experience FHE in action:
-1. Encrypt two numbers
-2. Choose an operation (add or multiply)
-3. Compute on encrypted data
-4. Decrypt and see the result
-5. Learn how FHE works
+| File | Description |
+|------|-------------|
+| `client/src/pages/Home.tsx` | Landing page with hero section |
+| `client/src/pages/tools/EncryptedSearch.tsx` | FHE search implementation |
+| `client/src/pages/Documentation.tsx` | Technical documentation |
+| `client/src/lib/pdfUtils.ts` | Client-side PDF processing |
+| `client/src/index.css` | Theme & design tokens |
 
-### Zama Showcase (`/zama-showcase`)
-Discover FheDF's alignment with Zama:
-- Technical excellence highlights
-- Real-world use cases
-- Submission checklist
-- Links to resources
+## Environment Variables
 
-## 📈 Performance
+```env
+DATABASE_URL=mysql://user:pass@host:3306/dbname
+JWT_SECRET=your-secret-key
+```
 
-| Metric | Value |
-|--------|-------|
-| Build Time | ~11 seconds |
-| Bundle Size (gzipped) | ~643 KB |
-| Time to Interactive | < 2 seconds |
-| Lighthouse Score | 95+ |
+## Deployment to Vercel
 
-## 🔒 Privacy & Security
+This project is ready for deployment to Vercel.
 
-### Zero-Trust Design
-- ✅ No data uploads to servers
-- ✅ No user accounts required
-- ✅ No tracking or analytics
-- ✅ Open-source for transparency
+### 1. Connect to GitHub
 
-### Cryptographic Guarantees
-- ✅ FHE provides mathematical privacy
-- ✅ Encrypted data is semantically secure
-- ✅ Operations preserve encryption
-- ✅ Results only decryptable by user
+Ensure your project is pushed to a GitHub repository.
 
-## 🏆 Zama Developer Program
+### 2. Import Project in Vercel
 
-FheDF is submitted for the **Zama Developer Program (December 2025)** and demonstrates:
+- In your Vercel dashboard, click "Add New..." -> "Project".
+- Import the GitHub repository.
 
-- **Innovation**: First FHE-powered PDF toolkit
-- **Technical Excellence**: Production-ready code with professional UX
-- **Real-World Value**: Solves actual privacy challenges
-- **Educational Impact**: Teaches FHE through interactive demos
-- **Community Contribution**: Open-source, well-documented code
+### 3. Configure Project
 
-### Alignment with Zama's Mission
-- Demonstrates practical FHE applications
-- Uses Zama-compatible libraries (SEAL)
-- Provides learning resources for developers
-- Addresses privacy challenges in document processing
+Vercel should automatically detect that this is a Vite project. The default settings should work correctly.
 
-## 📚 Documentation
+- **Framework Preset**: Vite
+- **Build Command**: `pnpm run build`
+- **Output Directory**: `dist/public`
+- **Install Command**: `pnpm install`
 
-- **[README_ZAMA_SUBMISSION.md](./README_ZAMA_SUBMISSION.md)**: Detailed technical documentation
-- **[ZAMA_AUDIT_CHECKLIST.md](./ZAMA_AUDIT_CHECKLIST.md)**: Submission requirements checklist
-- **[ENHANCEMENTS.md](./ENHANCEMENTS.md)**: Feature enhancements and improvements
-- **[CHANGELOG.md](./CHANGELOG.md)**: Version history and updates
+### 4. Deploy
 
-## 🐛 Known Limitations
+Click the "Deploy" button. Vercel will build and deploy your project. After a few minutes, your FHE-enhanced application will be live!
 
-- FHE operations are simulated (deterministic hash-based) for demo purposes
-- Single-threaded execution (no Web Workers yet)
-- Limited to addition and multiplication operations
+## Privacy Guarantees
 
-## 🚀 Future Roadmap
+1. **Zero Server Uploads** - All PDF processing uses WebAssembly in the browser
+2. **Client-Side Encryption** - FHE operations happen locally
+3. **No Data Collection** - We don't track or store your files
+4. **Open Source** - Full transparency in implementation
 
-- [ ] Integration with real SEAL library for production FHE
-- [ ] Support for more complex operations (comparison, bitwise)
-- [ ] Multi-party computation support
-- [ ] Mobile app version (React Native)
-- [ ] Advanced encryption schemes (CKKS for floating-point)
-- [ ] Web Worker support for parallel processing
+## FHE Encrypted Search Enhancement
 
-## 🤝 Contributing
+This project has been enhanced with a production-ready, client-side FHE encrypted search feature using `node-seal` (Microsoft SEAL).
 
-Contributions are welcome! Please:
+### Changes Overview
 
-1. Fork the repository
-2. Create a feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Open a Pull Request
+- **Real FHE**: Replaced simulated FHE with genuine homomorphic encryption.
+- **Client-Side**: All cryptographic operations (key generation, encryption, homomorphic evaluation, decryption) run in the browser.
+- **`node-seal` Integration**: Uses the mature and performant Microsoft SEAL library via WebAssembly.
+- **Secure Key Storage**: FHE keys are generated and stored securely in the browser's IndexedDB.
+- **Improved UI**: The UI now provides real-time feedback on the FHE process.
 
-## 📞 Support
+## License
 
-- **GitHub Issues**: [Report bugs or request features](https://github.com/Asinhaaa/FheDF/issues)
-- **Creator**: [@ramx_ai](https://twitter.com/ramx_ai)
-- **Zama Community**: [Join the discussion](https://community.zama.org)
+MIT License - Feel free to use and modify for your projects.
 
-## 📄 License
+## Links
 
-This project is open-source and available under the **MIT License**. See [LICENSE](./LICENSE) for details.
-
-## 🙏 Acknowledgments
-
-- **Zama Team**: For pioneering FHE research and tools
-- **Microsoft**: For the SEAL library
-- **Mozilla**: For PDF.js
-- **React & Vite Communities**: For amazing development tools
-- **Framer Motion**: For smooth animations
-
----
-
-## 📊 Stats
-
-![GitHub Stars](https://img.shields.io/github/stars/Asinhaaa/FheDF?style=social)
-![GitHub Forks](https://img.shields.io/github/forks/Asinhaaa/FheDF?style=social)
-![GitHub Issues](https://img.shields.io/github/issues/Asinhaaa/FheDF)
-![License](https://img.shields.io/badge/license-MIT-blue)
-
----
-
-**FheDF: Where Privacy Meets Productivity** 🚀🔒
-
-*Built with ❤️ for the Zama Developer Program*
+- **Zama**: [zama.ai](https://www.zama.ai/)
+- **Concrete Docs**: [docs.zama.ai/concrete](https://docs.zama.ai/concrete)
