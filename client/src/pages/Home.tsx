@@ -1,3 +1,4 @@
+import React from "react";
 import { Link } from "wouter";
 import { motion } from "framer-motion";
 import { 
@@ -15,7 +16,8 @@ import {
   Twitter,
   Github,
   FileText,
-  Sparkles
+  Sparkles,
+  Wallet
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
@@ -87,10 +89,48 @@ const floatingAnimation = {
 };
 
 export default function Home() {
+  const [walletConnected, setWalletConnected] = React.useState(false);
+  const [walletAddress, setWalletAddress] = React.useState("");
+
+  const handleConnectWallet = async () => {
+    try {
+      if (typeof window !== "undefined" && (window as any).ethereum) {
+        const accounts = await (window as any).ethereum.request({
+          method: "eth_requestAccounts",
+        });
+        if (accounts && accounts.length > 0) {
+          setWalletConnected(true);
+          setWalletAddress(accounts[0].substring(0, 6) + "..." + accounts[0].substring(38));
+        }
+      } else {
+        alert("MetaMask not installed. Please install MetaMask to connect.");
+      }
+    } catch (error) {
+      console.error("Failed to connect wallet:", error);
+    }
+  };
+
   return (
     <div className="min-h-screen bg-background text-foreground selection:bg-primary selection:text-black">
+      {/* Top Navigation */}
+      <nav className="fixed top-0 left-0 right-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/50">
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <Wallet className="w-5 h-5 text-primary" />
+            <span className="font-bold">FheDF</span>
+          </div>
+          <Button
+            onClick={handleConnectWallet}
+            variant={walletConnected ? "outline" : "default"}
+            size="sm"
+          >
+            {walletConnected ? walletAddress : "Connect Wallet"}
+          </Button>
+        </div>
+      </nav>
+
       {/* Hero Section */}
-      <header className="relative pt-12 md:pt-20 pb-20 md:pb-32 overflow-hidden">
+      <header className="relative pt-24 md:pt-32 pb-20 md:pb-32 overflow-hidden">
         {/* Background Decorative Elements */}
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-full max-w-7xl pointer-events-none">
           <motion.div 
