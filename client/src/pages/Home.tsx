@@ -13,6 +13,7 @@ import React from "react";
 import { WalletConnectButton } from "@/components/WalletConnectButton";
 import { WalletStatus } from "@/components/WalletStatus";
 import { SendTransaction } from "@/components/SendTransaction";
+import { ContractDeployer } from "@/components/ContractDeployer";
 import { useWalletConnection } from "@/hooks/useWalletConnection";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -170,11 +171,12 @@ export default function Home() {
               </div>
 
               {/* Send Transaction */}
-              <div className="lg:col-span-2">
+              <div className="lg:col-span-2 space-y-6">
                 <SendTransaction
                   defaultRecipient="0x742d35Cc6634C0532925a3b844Bc9e7595f42bE"
                   defaultAmount="0.001"
                 />
+                <ContractDeployer />
               </div>
             </div>
           </motion.section>
